@@ -1,0 +1,100 @@
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 4 byte(s) for 5.26% of 0.19 seconds
+
+index % time    self  children    called     name
+                0.00    0.15       1/1           std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > mafia_solve<double>(double const*, int, int, Options const&) [2]
+[1]     78.9    0.00    0.15       1         MafiaSolver<double>::find_clusters() [1]
+                0.12    0.00       1/1           MafiaSolver<double>::build_histos() [3]
+                0.02    0.00       1/1           MafiaSolver<double>::build_bitmaps() [5]
+                0.00    0.01       1/1           MafiaSolver<double>::build_clusters() [7]
+                0.00    0.00       5/5           std::vector<ref<Cdu>, std::allocator<ref<Cdu> > >::operator=(std::vector<ref<Cdu>, std::allocator<ref<Cdu> > > const&) [36]
+                0.00    0.00       5/5           MafiaSolver<double>::find_cdus() [35]
+                0.00    0.00       5/5           MafiaSolver<double>::find_dense_cdus() [34]
+                0.00    0.00       4/4           MafiaSolver<double>::dedup_cdus() [38]
+                0.00    0.00       4/4           MafiaSolver<double>::find_unjoined_dus() [39]
+                0.00    0.00       1/1           MafiaSolver<double>::build_windows() [41]
+                0.00    0.00       1/1           MafiaSolver<double>::build_du_graph() [42]
+                0.00    0.00       1/1           MafiaSolver<double>::build_du_clusters() [43]
+-----------------------------------------------
+                                                 <spontaneous>
+[2]     78.9    0.00    0.15                 std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > mafia_solve<double>(double const*, int, int, Options const&) [2]
+                0.00    0.15       1/1           MafiaSolver<double>::find_clusters() [1]
+                0.00    0.00       1/1           MafiaSolver<double>::MafiaSolver(double const*, int, int, Options const&) [44]
+                0.00    0.00       1/1           MafiaSolver<double>::~MafiaSolver() [45]
+-----------------------------------------------
+                0.12    0.00       1/1           MafiaSolver<double>::find_clusters() [1]
+[3]     63.2    0.12    0.00       1         MafiaSolver<double>::build_histos() [3]
+                0.00    0.00       5/45          void write_clusters<double>(char const*, double*, int, int, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&) [23]
+-----------------------------------------------
+                                                 <spontaneous>
+[4]     21.1    0.04    0.00                 void read_points<double>(char const*, double**, int*, int*) [4]
+                0.00    0.00      25/133         std::vector<dimpair_t, std::allocator<dimpair_t> >::_M_insert_aux(__gnu_cxx::__normal_iterator<dimpair_t*, std::vector<dimpair_t, std::allocator<dimpair_t> > >, dimpair_t const&) [17]
+-----------------------------------------------
+                0.02    0.00       1/1           MafiaSolver<double>::find_clusters() [1]
+[5]     10.5    0.02    0.00       1         MafiaSolver<double>::build_bitmaps() [5]
+                0.00    0.00      42/42          Window::is_dense() [25]
+                0.00    0.00       4/4           bitmap::bitmap(unsigned long, bool) [40]
+-----------------------------------------------
+                0.01    0.00 1000000/1000000     MafiaSolver<double>::build_clusters() [7]
+[6]      5.3    0.01    0.00 1000000         bool Cdu::contains_point<double>(double const*, std::vector<std::vector<Window, std::allocator<Window> >, std::allocator<std::vector<Window, std::allocator<Window> > > > const&) const [6]
+-----------------------------------------------
+                0.00    0.01       1/1           MafiaSolver<double>::find_clusters() [1]
+[7]      5.3    0.00    0.01       1         MafiaSolver<double>::build_clusters() [7]
+                0.01    0.00 1000000/1000000     bool Cdu::contains_point<double>(double const*, std::vector<std::vector<Window, std::allocator<Window> >, std::allocator<std::vector<Window, std::allocator<Window> > > > const&) const [6]
+                0.00    0.00      21/21          std::vector<int, std::allocator<int> >::_M_insert_aux(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, int const&) [29]
+                0.00    0.00       1/45          void write_clusters<double>(char const*, double*, int, int, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&) [23]
+-----------------------------------------------
+                0.00    0.00     182/412         Window::merge_with(Window const&) const [16]
+                0.00    0.00     230/412         Window::Window(int, int, int) [14]
+[13]     0.0    0.00    0.00     412         bitmap::bitmap() [13]
+-----------------------------------------------
+                0.00    0.00     230/230         MafiaSolver<double>::build_uniform_windows(int, int, std::vector<Window, std::allocator<Window> >&) [31]
+[14]     0.0    0.00    0.00     230         Window::Window(int, int, int) [14]
+                0.00    0.00     230/412         bitmap::bitmap() [13]
+-----------------------------------------------
+                0.00    0.00     190/190         MafiaSolver<double>::build_windows() [41]
+[15]     0.0    0.00    0.00     190         Window::can_merge_with(Window const&, double) const [15]
+-----------------------------------------------
+                0.00    0.00     182/182         MafiaSolver<double>::build_windows() [41]
+[16]     0.0    0.00    0.00     182         Window::merge_with(Window const&) const [16]
+                0.00    0.00     182/412         bitmap::bitmap() [13]
+-----------------------------------------------
+                0.00    0.00      25/133         void read_points<double>(char const*, double**, int*, int*) [4]
+                0.00    0.00      42/133         MafiaSolver<double>::find_cdus() [35]
+                0.00    0.00      66/133         Cdu::merge_with(Cdu const&) [27]
+[17]     0.0    0.00    0.00     133         std::vector<dimpair_t, std::allocator<dimpair_t> >::_M_insert_aux(__gnu_cxx::__normal_iterator<dimpair_t*, std::vector<dimpair_t, std::allocator<dimpair_t> > >, dimpair_t const&) [17]
+-----------------------------------------------
+                0.00    0.00      18/96          MafiaSolver<double>::build_windows() [41]
+                0.00    0.00      78/96          MafiaSolver<double>::build_uniform_windows(int, int, std::vector<Window, std::allocator<Window> >&) [31]
+[18]     0.0    0.00    0.00      96         std::vector<Window, std::allocator<Window> >::_M_insert_aux(__gnu_cxx::__normal_iterator<Window*, std::vector<Window, std::allocator<Window> > >, Window const&) [18]
+-----------------------------------------------
+                0.00    0.00      68/68          void write_clusters<double>(char const*, double*, int, int, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&) [23]
+[19]     0.0    0.00    0.00      68         Cdu::operator<(Cdu const&) const [19]
+-----------------------------------------------
+                0.00    0.00       1/66          MafiaSolver<double>::~MafiaSolver() [45]
+                0.00    0.00      14/66          std::vector<ref<Cdu>, std::allocator<ref<Cdu> > >::operator=(std::vector<ref<Cdu>, std::allocator<ref<Cdu> > > const&) [36]
+                0.00    0.00      51/66          MafiaSolver<double>::find_cdus() [35]
+[20]     0.0    0.00    0.00      66         Cdu::~Cdu() [20]
+-----------------------------------------------
+                0.00    0.00      53/53          MafiaSolver<double>::find_dense_cdus() [34]
+[21]     0.0    0.00    0.00      53         Cdu::count_points_bitmaps(int, std::vector<std::vector<Window, std::allocator<Window> >, std::allocator<std::vector<Window, std::allocator<Window> > > > const&) [21]
+                0.00    0.00      17/17          bitmap::operator&=(bitmap const&) [30]
+                0.00    0.00      11/11          bitmap::count() const [33]
+-----------------------------------------------
+                0.00    0.00      53/53          MafiaSolver<double>::find_dense_cdus() [34]
+[22]     0.0    0.00    0.00      53         Cdu::is_dense(std::vector<std::vector<Window, std::allocator<Window> >, std::allocator<std::vector<Window, std::allocator<Window> > > > const&) const [22]
+-----------------------------------------------
+                                  11             void write_clusters<double>(char const*, double*, int, int, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&) [23]
+                0.00    0.00       1/45          MafiaSolver<double>::build_clusters() [7]
+                0.00    0.00       3/45          MafiaSolver<double>::find_unjoined_dus() [39]
+                0.00    0.00       3/45          MafiaSolver<double>::build_du_clusters() [43]
+                0.00    0.00       5/45          MafiaSolver<double>::build_histos() [3]
+                0.00    0.00       5/45          MafiaSolver<double>::build_windows() [41]
+                0.00    0.00      28/45          MafiaSolver<double>::find_cdus() [35]
+[23]     0.0    0.00    0.00      45+11      void write_clusters<double>(char const*, double*, int, int, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&) [23]
+                0.00    0.00      68/68          Cdu::operator<(Cdu const&) const [19]
+                                  11             void write_clusters<double>(char const*, double*, int, int, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&) [23]
+-----------------------------------------------
+                0.00    0.00      42/42          MafiaSolver<double>::build_windows() [41]

@@ -1,0 +1,50 @@
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 4 byte(s) for 0.00% of 716.81 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]    100.0    0.00  716.81                 std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > mafia_solve<double>(double const*, int, int, Options const&) [1]
+                0.00  716.81       1/1           MafiaSolver<double>::find_clusters() [2]
+                0.00    0.00       1/1           MafiaSolver<double>::~MafiaSolver() [20]
+                0.00    0.00       1/1           MafiaSolver<double>::MafiaSolver(double const*, int, int, Options const&) [38]
+-----------------------------------------------
+                0.00  716.81       1/1           std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > mafia_solve<double>(double const*, int, int, Options const&) [1]
+[2]    100.0    0.00  716.81       1         MafiaSolver<double>::find_clusters() [2]
+              164.56  469.10      17/17          MafiaSolver<double>::dedup_cdus() [3]
+                0.01   46.22      18/18          MafiaSolver<double>::find_dense_cdus() [5]
+                1.77   26.38      18/18          MafiaSolver<double>::find_cdus() [8]
+                0.56    8.18      17/17          MafiaSolver<double>::find_unjoined_dus() [10]
+                0.02    0.01      18/35          std::vector<ref<Cdu>, std::allocator<ref<Cdu> > >::operator=(std::vector<ref<Cdu>, std::allocator<ref<Cdu> > > const&) [15]
+                0.00    0.00       1/1           MafiaSolver<double>::build_clusters() [17]
+                0.00    0.00       1/1           MafiaSolver<double>::build_du_clusters() [18]
+                0.00    0.00       1/1           MafiaSolver<double>::build_histos() [35]
+                0.00    0.00       1/1           MafiaSolver<double>::build_windows() [36]
+                0.00    0.00       1/1           MafiaSolver<double>::build_du_graph() [37]
+-----------------------------------------------
+              164.56  469.10      17/17          MafiaSolver<double>::find_clusters() [2]
+[3]     88.4  164.56  469.10      17         MafiaSolver<double>::dedup_cdus() [3]
+              469.03    0.00 4111503762/4111503762     Cdu::operator==(Cdu const&) [4]
+                0.04    0.00     195/234         std::vector<ref<Cdu>, std::allocator<ref<Cdu> > >::_M_insert_aux(__gnu_cxx::__normal_iterator<ref<Cdu>*, std::vector<ref<Cdu>, std::allocator<ref<Cdu> > > >, ref<Cdu> const&) [14]
+                0.02    0.00      17/35          std::vector<ref<Cdu>, std::allocator<ref<Cdu> > >::operator=(std::vector<ref<Cdu>, std::allocator<ref<Cdu> > > const&) [15]
+-----------------------------------------------
+              469.03    0.00 4111503762/4111503762     MafiaSolver<double>::dedup_cdus() [3]
+[4]     65.4  469.03    0.00 4111503762         Cdu::operator==(Cdu const&) [4]
+-----------------------------------------------
+                0.01   46.22      18/18          MafiaSolver<double>::find_clusters() [2]
+[5]      6.4    0.01   46.22      18         MafiaSolver<double>::find_dense_cdus() [5]
+                2.08   44.14  131146/131146      int Cdu::count_points<double>(double const*, int, int, std::vector<std::vector<Window, std::allocator<Window> >, std::allocator<std::vector<Window, std::allocator<Window> > > > const&) [6]
+                0.00    0.00      16/234         std::vector<ref<Cdu>, std::allocator<ref<Cdu> > >::_M_insert_aux(__gnu_cxx::__normal_iterator<ref<Cdu>*, std::vector<ref<Cdu>, std::allocator<ref<Cdu> > > >, ref<Cdu> const&) [14]
+                0.00    0.00  131146/131146      Cdu::is_dense(std::vector<std::vector<Window, std::allocator<Window> >, std::allocator<std::vector<Window, std::allocator<Window> > > > const&) const [26]
+-----------------------------------------------
+                2.08   44.14  131146/131146      MafiaSolver<double>::find_dense_cdus() [5]
+[6]      6.4    2.08   44.14  131146         int Cdu::count_points<double>(double const*, int, int, std::vector<std::vector<Window, std::allocator<Window> >, std::allocator<std::vector<Window, std::allocator<Window> > > > const&) [6]
+               44.14    0.00 2621080000/2621100000     bool Cdu::contains_point<double>(double const*, std::vector<std::vector<Window, std::allocator<Window> >, std::allocator<std::vector<Window, std::allocator<Window> > > > const&) const [7]
+-----------------------------------------------
+                0.00    0.00   20000/2621100000     MafiaSolver<double>::build_clusters() [17]
+               44.14    0.00 2621080000/2621100000     int Cdu::count_points<double>(double const*, int, int, std::vector<std::vector<Window, std::allocator<Window> >, std::allocator<std::vector<Window, std::allocator<Window> > > > const&) [6]
+[7]      6.2   44.14    0.00 2621100000         bool Cdu::contains_point<double>(double const*, std::vector<std::vector<Window, std::allocator<Window> >, std::allocator<std::vector<Window, std::allocator<Window> > > > const&) const [7]
+-----------------------------------------------
+                1.77   26.38      18/18          MafiaSolver<double>::find_clusters() [2]
+[8]      3.9    1.77   26.38      18         MafiaSolver<double>::find_cdus() [8]

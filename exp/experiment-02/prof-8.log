@@ -1,0 +1,50 @@
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 4 byte(s) for 100.00% of 0.01 seconds
+
+index % time    self  children    called     name
+                0.01    0.00       1/1           MafiaSolver<double>::find_clusters() [2]
+[1]    100.0    0.01    0.00       1         MafiaSolver<double>::build_histos() [1]
+                0.00    0.00       6/1820        void write_clusters<double>(char const*, double*, int, int, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&) [15]
+-----------------------------------------------
+                0.00    0.01       1/1           std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > mafia_solve<double>(double const*, int, int, Options const&) [3]
+[2]    100.0    0.00    0.01       1         MafiaSolver<double>::find_clusters() [2]
+                0.01    0.00       1/1           MafiaSolver<double>::build_histos() [1]
+                0.00    0.00       9/9           std::vector<ref<Cdu>, std::allocator<ref<Cdu> > >::operator=(std::vector<ref<Cdu>, std::allocator<ref<Cdu> > > const&) [33]
+                0.00    0.00       9/9           MafiaSolver<double>::find_cdus() [32]
+                0.00    0.00       9/9           MafiaSolver<double>::find_dense_cdus() [31]
+                0.00    0.00       8/8           MafiaSolver<double>::dedup_cdus() [35]
+                0.00    0.00       8/8           MafiaSolver<double>::find_unjoined_dus() [36]
+                0.00    0.00       1/1           MafiaSolver<double>::build_windows() [39]
+                0.00    0.00       1/1           MafiaSolver<double>::build_du_graph() [41]
+                0.00    0.00       1/1           MafiaSolver<double>::build_clusters() [40]
+                0.00    0.00       1/1           MafiaSolver<double>::build_du_clusters() [42]
+                0.00    0.00       1/1           MafiaSolver<double>::build_bitmaps() [38]
+-----------------------------------------------
+                                                 <spontaneous>
+[3]    100.0    0.00    0.01                 std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > mafia_solve<double>(double const*, int, int, Options const&) [3]
+                0.00    0.01       1/1           MafiaSolver<double>::find_clusters() [2]
+                0.00    0.00       1/1           MafiaSolver<double>::MafiaSolver(double const*, int, int, Options const&) [43]
+                0.00    0.00       1/1           MafiaSolver<double>::~MafiaSolver() [44]
+-----------------------------------------------
+                0.00    0.00   20000/20000       MafiaSolver<double>::build_clusters() [40]
+[9]      0.0    0.00    0.00   20000         bool Cdu::contains_point<double>(double const*, std::vector<std::vector<Window, std::allocator<Window> >, std::allocator<std::vector<Window, std::allocator<Window> > > > const&) const [9]
+-----------------------------------------------
+                0.00    0.00   12755/12755       void write_clusters<double>(char const*, double*, int, int, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&) [15]
+[10]     0.0    0.00    0.00   12755         Cdu::operator<(Cdu const&) const [10]
+-----------------------------------------------
+                0.00    0.00      20/6642        void read_points<double>(char const*, double**, int*, int*) [46]
+                0.00    0.00      98/6642        MafiaSolver<double>::find_cdus() [32]
+                0.00    0.00    6524/6642        Cdu::merge_with(Cdu const&) [16]
+[11]     0.0    0.00    0.00    6642         std::vector<dimpair_t, std::allocator<dimpair_t> >::_M_insert_aux(__gnu_cxx::__normal_iterator<dimpair_t*, std::vector<dimpair_t, std::allocator<dimpair_t> > >, dimpair_t const&) [11]
+-----------------------------------------------
+                0.00    0.00    6307/6307        MafiaSolver<double>::find_cdus() [32]
+[12]     0.0    0.00    0.00    6307         Cdu::can_merge_with(Cdu const&) [12]
+-----------------------------------------------
+                0.00    0.00    2480/2480        MafiaSolver<double>::find_unjoined_dus() [36]
+[13]     0.0    0.00    0.00    2480         Cdu::is_assimilated_into(Cdu const&) const [13]
+-----------------------------------------------
+                0.00    0.00       1/1890        MafiaSolver<double>::~MafiaSolver() [44]
+                0.00    0.00     254/1890        std::vector<ref<Cdu>, std::allocator<ref<Cdu> > >::operator=(std::vector<ref<Cdu>, std::allocator<ref<Cdu> > > const&) [33]
+                0.00    0.00    1635/1890        MafiaSolver<double>::find_cdus() [32]

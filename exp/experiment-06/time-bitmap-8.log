@@ -1,0 +1,10 @@
+reading points: 12.953024 s
+building histogram: 1.106914 s
+building windows: 0.000031 s
+building bitmaps: 0.285243 s
+finding and deduplicating CDUs: 0.000611 s
+finding dense CDUs: 0.670120 s
+finding unjoined DUs: 0.000073 s
+building graph: 0.000003 s
+building clusters: 0.049190 s
+writing data: 0.763772 s
