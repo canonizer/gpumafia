@@ -11,6 +11,8 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 template<class T>
 MafiaSolver<T>::MafiaSolver
@@ -98,6 +100,9 @@ MafiaSolver<T>::~MafiaSolver() {
   // free the memory
   free(pmins);
   free(pmaxs);
+	free(nbinss);
+	free(histos);
+	free(histo_data);
 }
 
 template<class T>
@@ -105,6 +110,7 @@ void MafiaSolver<T>::build_histos() {
   // compute minima and maxima for per-dimension coordinates
   pmins = (T*)malloc(sizeof(*pmins) * d);
   pmaxs = (T*)malloc(sizeof(*pmaxs) * d);
+	nbinss = (int *)malloc(sizeof(*nbinss) * d);
   for(int idim = 0; idim < d; idim++) {
     pmins[idim] = numeric_limits<T>::infinity(); 
     pmaxs[idim] = -numeric_limits<T>::infinity();
@@ -115,30 +121,45 @@ void MafiaSolver<T>::build_histos() {
     // increase max by eps, to avoid special handling of the right corner, 
     // and make all bins and windows right-exclusive, i.e. [lb, rb)
     pmaxs[idim] += eps;
-  }
+		// count the number of bins in each histogram
+		nbinss[idim] = max(min_nbins, (int)ceilf(pmaxs[idim] - pmins[idim]));
+  }  // for(idim)
+
+	// allocate the data for the entire histogram
+	int total_nbins = 0;
+	for(int idim = 0; idim < d; idim++) 
+		total_nbins += nbinss[idim];
+	histo_data = (int*)malloc(sizeof(*histo_data) * total_nbins);
+	memset(histo_data, 0, sizeof(*histo_data) * total_nbins);
+
+	// set the pointer for each histogram
+	histos = (int**)malloc(sizeof(*histos) * d);
+	int sum_nbins = 0;
+	for(int idim = 0; idim < d; idim++) {
+		histos[idim] = histo_data + sum_nbins;
+		sum_nbins += nbinss[idim];
+	}
   
-  // build the histograms
+	// compute the point histograms
   for(int idim = 0; idim < d; idim++) {
     // TODO: support unnormalized data; for now, assume that maximum
     // width of a bin is 1
-    int nbins = max(min_nbins, (int)ceilf(pmaxs[idim] - pmins[idim]));
+    int nbins = nbinss[idim];
     T bin_width = (pmaxs[idim] - pmins[idim]) / nbins;
-    histos.push_back(vector<int>(nbins, 0));
-    vector<int> &histo = histos[idim];
+		int *histo = histos[idim];
     for(int i = 0; i < n; i++) {
       int ibin = (int)floor((PS(i, idim) - pmins[idim]) / bin_width);
-      // clamp the bin index
       ibin = min(max(ibin, 0), nbins - 1);
       histo[ibin]++;
     }
-  }
+  } 
 }  // build_histos
 
 template<class T>
 void MafiaSolver<T>::build_uniform_windows
 (int idim, int nwindows, vector<Window > &ws) {
-  vector<int> &histo = histos[idim];
-  int nbins = histos[idim].size();
+  int *histo = histos[idim];
+  int nbins = nbinss[idim];;
   int wwidth = divup(nbins, nwindows);
   for(int left = 0; left < nbins; left += wwidth) {
     int right = min(left + wwidth, nbins);
@@ -204,7 +225,7 @@ void MafiaSolver<T>::build_windows() {
       }
 
       // compute thresholds
-      int nbins = histos[idim].size();
+      int nbins = nbinss[idim];
       for(int iwin = 0; iwin < dim_windows.size(); iwin++) 
 				dim_windows[iwin].compute_threshold(alpha, n, nbins);
 
@@ -399,12 +420,12 @@ void MafiaSolver<T>::build_clusters() {
 template<class T>
 void MafiaSolver<T>::print_histos() {
   for(int idim = 0; idim < d; idim++) {
-    vector<int> &histo = histos[idim];
+    int *histo = histos[idim];
     printf("dimension %d: [", idim);
-    for(int ibin = 0; ibin < histo.size(); ibin++) {
+    for(int ibin = 0; ibin < nbinss[idim]; ibin++) {
       printf("%d", histo[ibin]);
-      if(ibin != histo.size() - 1)
-	printf(" ");
+      if(ibin != nbinss[idim] - 1)
+				printf(" ");
     }
     printf("]\n");
   }

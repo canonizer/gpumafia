@@ -110,7 +110,13 @@ class MafiaSolver {
   /** data maximums, one per dimension */
   T *pmaxs;
   /** bin histograms along each dimension */
-  vector<vector<int> > histos;
+  //vector<vector<int> > histos;
+	/** an array containing the data for all histograms */
+	int *histo_data;
+	/** the starts of individual histograms in the histo_data array */
+	int **histos;
+	/** the number of bins in the histogram for each dimension */
+	int *nbinss;
   /** windows along each dimension */
   vector<vector<Window> > windows;
   /** terminal dense units which will be connected into a graph;
