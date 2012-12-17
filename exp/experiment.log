@@ -88,3 +88,8 @@ prime candidate for offloading to the device (of course, there's also
 construction of bitmaps). Now we'll do another experiment (experiment-06),
 without profiling.
 
+14.12.2012
+
+1) Porting to CUDA, now computing histograms on device. Using the device gives
+some acceleration, even on 100K points. It should be better for 10M points, for
+which we'll now do experiments.

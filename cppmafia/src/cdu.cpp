@@ -149,7 +149,7 @@ template<class T> bool Cdu::contains_point
     dimpair_t dp = coords[icoord];
     int dim = dp.dim;
     const Window &w = ws[dim][dp.win];
-    if(PS(i, dim) < w.pleft || PS(i, dim) > w.pright)
+    if(PS(i, dim) < w.pleft || PS(i, dim) >= w.pright)
       return false;
   }
   return true;

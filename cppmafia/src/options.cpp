@@ -21,6 +21,7 @@ static struct option long_opts[] = {
 	{"no-bitmaps", no_argument, 0, 'p'}, 
 	{"verbose", no_argument, 0, 'v'},
 	{"timing", no_argument, 0, 't'},
+	{"device", no_argument, 0, 'g'},
 	{"help", no_argument, 0, 'h'},
 	{0, 0, 0, 0}
 };
@@ -60,6 +61,10 @@ Options::Options(int argc, char **argv)
 		case 'p':
 			// disable bitmaps during point counting
 			flags &= ~OptionUseBitmaps;
+			break;
+		case 'g':
+			// use a GPU
+			flags |= OptionUseDevice;
 			break;
 		case 'v':
 			// verbosity

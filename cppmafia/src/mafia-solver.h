@@ -33,6 +33,10 @@ class MafiaSolver {
   //inline const T & coord(int i, int idim) { return ps[i * d + idim]; }
   /** build the histograms */
   void build_histos();
+	/** computes the histogram on host for a specific dimension */
+	void compute_histo_host(int idim);
+	/** compute point limits (pmin/pmax) on host */
+	void compute_limits_host();
   /** build the windows */
   void build_windows();
   /** build the uniform windows 
@@ -43,6 +47,8 @@ class MafiaSolver {
   void build_uniform_windows(int idim, int nwindows, vector<Window> &ws);
 	/** builds point membership bitmaps for dense windows */
 	void build_bitmaps();
+	/** computes a bitmap for a single window on host */
+	void compute_bitmap_host(int idim, int iwin);
   /** finds the candidate dense units */
   void find_cdus();
 	/** deduplicate the CDUs found */
@@ -69,24 +75,52 @@ class MafiaSolver {
 	inline bool use_set_dedup() const { return flags & OptionSetDedup; }
 	/** checks whether to use bitmaps */
 	inline bool use_bitmaps() const { return flags & OptionUseBitmaps; }
+	/** checks whether to use the device (i.e., GPU) */
+	inline bool use_device() const { return flags & OptionUseDevice; }
+
+	// functions which use the device (GPU)
+#ifdef MAFIA_USE_DEVICE
+	/** makes a simple on-device operation to ensure that the device is
+			initialized before any further time measurements are performed */
+	void touch_dev();
+	/** allocates point data and copies them to device; this must be performed
+			before any on-device operations with points can be performed */
+	void copy_ps_to_device();
+	/** compute point limits (pmin/pmax) on device */
+	void compute_limits_dev();
+	/** computes the histogram on the device for a specific dimension; note that
+			it does only histogram computation proper, and not the other related
+			tasks
+			*/
+	void compute_histo_dev(int idim);
+	/** computes a bitmap for a single window on device */
+	void compute_bitmap_dev(int idim, int iwin);
+	/** frees the resources on the device */
+	void free_dev_resources();
+#endif
 
   // debug functions for printing content after specific stages
   /** print the histograms */
   void print_histos();
   /** print the windows */
   void print_windows();
+	/** prints the bitmaps */
+	void print_bitmaps();
 	/** prints the terminal dense units found */
 	void print_terminal_dus();
 	/** print just a list of CDUs */
 	void print_dus(vector<ref<Cdu> > &dus);
 
  private:
+	// initial data of the algorithm
   /** data dimensionality */
   int d; 
   /** number of points in the data */
   int n;
-  /** the data points, stored in point-first order */
+  /** the data points, stored in dim-first order */
   const T *ps;
+	/** the data points stored on device */
+	T *d_ps;
   // parameters
   /** the minimum number of bins */
   int min_nbins;
@@ -104,7 +138,8 @@ class MafiaSolver {
 	/** the flags */
 	int flags;
   
-  // temporary working data used for finding clusters
+  // temporary working data used for finding clusters;
+	// some data also have device versions
   /** data minimums, one per dimension */
   T *pmins;
   /** data maximums, one per dimension */
@@ -136,7 +171,7 @@ class MafiaSolver {
 	vector<vector<int> > clusters;	
   /** current dimension for DU search */
   int cur_dim;
-  
+
 };  // MafiaSolver
 
 /** a wrapper function for the MAFIA solver */

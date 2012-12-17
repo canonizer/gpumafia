@@ -19,7 +19,7 @@ BitmapImpl::BitmapImpl(int nbits, bool set_zero) : data(0) {
 	if(n && data)
 		data[n - 1] = 0;
 	if(set_zero)
-		memset(data, (*data) * n, 0);
+		memset(data, 0, sizeof(*data) * n);
 } // BitmapImpl
 
 BitmapImpl::~BitmapImpl() {
@@ -36,7 +36,7 @@ bitmap bitmap::clone() {
 	if(!this->ptr)
 		return *this;
 	bitmap new_bmp = bitmap((*this)->nbits, false);
-	memcpy(new_bmp->data, (*this)->data, (*this)->n);
+	memcpy(new_bmp->data, (*this)->data, (*this)->n * sizeof(unsigned));
 	return new_bmp;
 }  // clone
 
@@ -61,6 +61,18 @@ int bitmap::count() const {
 		cnt += __builtin_popcount(ptr->data[i]);
 	return cnt;
 }  // count
+
+void bitmap::print() const {
+	if(!this->ptr)
+		return;
+	printf("[");
+	for(int i = 0; i < (*this)->n; i++) {
+		printf("%0x\n", (*this)->data[i]);
+		if(i < (*this)->n - 1)
+			printf(" ");
+	}
+	printf("]");
+}
 
 const bitmap &bitmap::operator &=(const bitmap &a) {
 	if(this->ptr && a.ptr && (*this)->nbits == a->nbits) {

@@ -26,7 +26,7 @@ public:
 	/** boolean assignment; surely non-atomic */
 	inline bool operator=(bool b) {
 		unsigned mask = 1u << ibit;
-		return *data = *data & ~mask | (b << ibit);
+		return *data = *data & ~mask | ((b ? 1u : 0u) << ibit);
 	}
 	/** the data referenced */
 	unsigned *data;
@@ -42,7 +42,7 @@ struct BitmapImpl : ref_object {
 	/** destroys the bitmap implementation */
 	virtual ~BitmapImpl();
 
-	/** the number of elements (uints) to represent the bitmap */
+	/** the number of elements (words, = uints) to represent the bitmap */
 	size_t n;
 	/** the size of the bitmap, in bits; bits outside of this size have no meaning */
 	size_t nbits;
@@ -80,6 +80,8 @@ public:
 	inline bool operator[](int ibit) const {
 		return (ptr->data[elt_index(ibit)] >> elt_bit_index(ibit)) & 1;
 	}
+	/** prints the bitmap contnents */
+	void print() const;
 
 	/** counts the number of bits in the sets */
 	int count() const;	

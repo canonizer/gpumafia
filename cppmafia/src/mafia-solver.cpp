@@ -16,7 +16,8 @@
 
 template<class T>
 MafiaSolver<T>::MafiaSolver
-(const T *points, int n, int d, const Options &opts) {
+(const T *points, int n, int d, const Options &opts) : 
+	d_ps(0) {
   // initialize the class
   this->ps = points;
   this->n = n;
@@ -31,22 +32,29 @@ MafiaSolver<T>::MafiaSolver
   
   /** zero out all pointer fields */
   pmins = pmaxs = 0;
-}
+
+	/** initialize the device if it is used */
+	if(use_device())
+		touch_dev();
+}  // MafiaSolver
 
 template<class T>
 vector<vector<int> > MafiaSolver<T>::find_clusters() {
   vector<vector<int> > cluster_idxs;
 	start_phase(PhaseBuildHisto);
   build_histos();
-	// if(is_verbose()))
-	// 	print_histos();
+	if(is_verbose())
+	 	print_histos();
 	start_phase(PhaseBuildWindows);
   build_windows();
-	// if(is_verbose())
-	// 	print_windows();
+	if(is_verbose())
+	 	print_windows();
 	start_phase(PhaseBuildBitmaps);
-	if(use_bitmaps())
+	if(use_bitmaps()) {
 		build_bitmaps();
+		// if(is_verbose())
+		//   print_bitmaps();
+	}
   cur_dim = 0;
   do {
 		if(is_verbose())
@@ -97,6 +105,8 @@ vector<vector<int> > MafiaSolver<T>::find_clusters() {
 
 template <class T>
 MafiaSolver<T>::~MafiaSolver() {
+	if(use_device())
+		free_dev_resources();
   // free the memory
   free(pmins);
   free(pmaxs);
@@ -107,23 +117,25 @@ MafiaSolver<T>::~MafiaSolver() {
 
 template<class T>
 void MafiaSolver<T>::build_histos() {
+	if(use_device())
+		copy_ps_to_device();
+
   // compute minima and maxima for per-dimension coordinates
   pmins = (T*)malloc(sizeof(*pmins) * d);
   pmaxs = (T*)malloc(sizeof(*pmaxs) * d);
 	nbinss = (int *)malloc(sizeof(*nbinss) * d);
-  for(int idim = 0; idim < d; idim++) {
-    pmins[idim] = numeric_limits<T>::infinity(); 
-    pmaxs[idim] = -numeric_limits<T>::infinity();
-    for(int i = 0; i < n; i++) {
-      pmins[idim] = min(pmins[idim], PS(i, idim));
-      pmaxs[idim] = max(pmaxs[idim], PS(i, idim));
-    }
+	if(use_device())
+		compute_limits_dev();
+	else
+		compute_limits_host();
+	
+	// count the number of bins in each histogram
+	for(int idim = 0; idim < d; idim++) {
     // increase max by eps, to avoid special handling of the right corner, 
     // and make all bins and windows right-exclusive, i.e. [lb, rb)
     pmaxs[idim] += eps;
-		// count the number of bins in each histogram
 		nbinss[idim] = max(min_nbins, (int)ceilf(pmaxs[idim] - pmins[idim]));
-  }  // for(idim)
+	}  // for(idim)
 
 	// allocate the data for the entire histogram
 	int total_nbins = 0;
@@ -142,18 +154,38 @@ void MafiaSolver<T>::build_histos() {
   
 	// compute the point histograms
   for(int idim = 0; idim < d; idim++) {
-    // TODO: support unnormalized data; for now, assume that maximum
-    // width of a bin is 1
-    int nbins = nbinss[idim];
-    T bin_width = (pmaxs[idim] - pmins[idim]) / nbins;
-		int *histo = histos[idim];
-    for(int i = 0; i < n; i++) {
-      int ibin = (int)floor((PS(i, idim) - pmins[idim]) / bin_width);
-      ibin = min(max(ibin, 0), nbins - 1);
-      histo[ibin]++;
-    }
+		if(use_device())
+			compute_histo_dev(idim);
+		else
+			compute_histo_host(idim);
   } 
 }  // build_histos
+
+template<class T>
+void MafiaSolver<T>::compute_limits_host() {
+ for(int idim = 0; idim < d; idim++) {
+    pmins[idim] = numeric_limits<T>::infinity(); 
+    pmaxs[idim] = -numeric_limits<T>::infinity();
+    for(int i = 0; i < n; i++) {
+      pmins[idim] = min(pmins[idim], PS(i, idim));
+      pmaxs[idim] = max(pmaxs[idim], PS(i, idim));
+    }
+  }  // for(idim)
+}
+
+template<class T>
+void MafiaSolver<T>::compute_histo_host(int idim) {
+	// TODO: support unnormalized data; for now, assume that maximum
+	// width of a bin is 1
+	int nbins = nbinss[idim];
+	T bin_iwidth = nbins / (pmaxs[idim] - pmins[idim]);
+	int *histo = histos[idim];
+	for(int i = 0; i < n; i++) {
+		int ibin = (int)floor((PS(i, idim) - pmins[idim]) * bin_iwidth);
+		ibin = min(max(ibin, 0), nbins - 1);
+		histo[ibin]++;
+	}
+}  // compute_histo_host
 
 template<class T>
 void MafiaSolver<T>::build_uniform_windows
@@ -182,18 +214,27 @@ void MafiaSolver<T>::build_bitmaps() {
 		for(int iw = 0; iw < ws.size(); iw++) {
 			Window &w = ws[iw];
 			if(w.is_dense()) {
-				// build the bitmap of the window
+				// build the bitmap for the window
 				w.pset = bitmap(n);
-				// check all points for membership (only the coordinate in this 
-				// dimension)
-				for(int i = 0; i < n; i++) {
-					if(w.pleft <= PS(i, idim) && PS(i, idim) < w.pright)
-						w.pset[i] = true;
-				}
+				if(use_device())
+					compute_bitmap_dev(idim, iw);
+				else
+					compute_bitmap_host(idim, iw);
 			}
 		}  // for(iw)
 	}  // for(idim)
 }  // build_bitmaps
+
+template<class T>
+void MafiaSolver<T>::compute_bitmap_host(int idim, int iwin) {
+	// check all points for membership (only the coordinate in this 
+	// dimension)
+	Window &w = windows[idim][iwin];
+	for(int i = 0; i < n; i++) {
+		if(w.pleft <= PS(i, idim) && PS(i, idim) < w.pright)
+			w.pset[i] = true;
+	}
+}  // compute_bitmap_host()
 
 template<class T>
 void MafiaSolver<T>::build_windows() {
@@ -401,6 +442,15 @@ void MafiaSolver<T>::build_clusters() {
 		vector<ref<Cdu> > &du_cluster = du_clusters[iclu];
 		clusters.push_back(vector<int>());
 		vector<int> &cluster = clusters.back();
+		/*
+		for(int i = 0; i < n; i++) {
+			for(int idu = 0; idu < du_cluster.size(); idu++) {
+				if(du_cluster[idu]->contains_point(ps, n, d, i, windows)) {
+					cluster.push_back(i);
+					break;
+				}					
+			}
+		}*/
 		bitmap pset(n);
 		// find point set, then transform it into a set of indices
 		for(int idu = 0; idu < du_cluster.size(); idu++) {
@@ -441,11 +491,29 @@ void MafiaSolver<T>::print_windows() {
       Window &w = dim_windows[iwin];      
       printf("(%d..%d max=%d t=%d)", w.left, w.right(), w.max, w.threshold);
       if(iwin != dim_windows.size() - 1)
-	printf(" ");
+				printf(" ");
     }
     printf("]\n");
   }
 }  // print_windows
+
+template<class T>
+void MafiaSolver<T>::print_bitmaps() {
+  // print the windows
+  for(int idim = 0; idim < d; idim++) {
+    vector<Window> &dim_windows = windows[idim];
+    printf("dimension %d: [\n", idim);
+    for(int iwin = 0; iwin < dim_windows.size(); iwin++) {
+      Window &w = dim_windows[iwin];
+			if(!w.is_dense())
+				continue;
+			w.pset.print();
+			if(iwin < dim_windows.size() - 1)
+				printf("\n");
+    }
+    printf("]\n");
+  }
+}  // print_bitmaps
 
 template<class T>
 void MafiaSolver<T>::print_terminal_dus() {

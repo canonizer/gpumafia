@@ -13,8 +13,10 @@ enum {
 	OptionSetDedup = 0x2,
 	/** whether to use bitmaps to count point membership */
 	OptionUseBitmaps = 0x4,
-	/** whether to output timing information as well */
-	OptionTiming = 0x8
+	/** whether to output timing information to stdout */
+	OptionTiming = 0x8,
+	/** whether to do processing on device, i.e. GPU */
+	OptionUseDevice = 0x10	
 };
 
 /** options for MAFIA algorithm and program */

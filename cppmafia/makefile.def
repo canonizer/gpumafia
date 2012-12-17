@@ -1,0 +1,2 @@
+# the compiler
+CXX=nvcc
