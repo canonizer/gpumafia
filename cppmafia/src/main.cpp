@@ -16,7 +16,8 @@ int main(int argc, char **argv) {
   double *points;
 
 	// parse optinos
-	Options opts(argc, argv);
+	Options::parse_cmdline(argc, argv);
+	const Options &opts = Options::options();
 	
   // load the points
 	start_phase(PhaseReadData);

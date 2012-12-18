@@ -1,5 +1,5 @@
 #!/bin/bash -x
-#MSUB -l nodes=1:ppn=2:gpus=1
+#MSUB -l nodes=1:ppn=24:gpus=1
 #MSUB -l walltime=00:01:30
 #MSUB -e ./cppmafia-dev-0.err
 # if keyword omitted : default is submitting directory
@@ -15,4 +15,4 @@ cd $PBS_O_WORKDIR
 echo "workdir: $PBS_O_WORKDIR"
 NSLOTS=1
 echo "running on $NSLOTS cpus ..."
-mpiexec -np $NSLOTS ./bin/cppmafia -n100 --timing --device --verbose ~/try/mafia/cluster-7-dev.dat
+mpiexec -np $NSLOTS ./bin/cppmafia -n100 --timing --device ~/try/mafia/cluster-7-dev.dat

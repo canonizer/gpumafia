@@ -13,17 +13,6 @@
 
 using namespace thrust;
 
-/** a macro to check whether CUDA calls are successful */
-#define CHECK(call) \
-	{\
-	cudaError_t res = (call);											\
-	if(res != cudaSuccess) {\
-	const char* err_str = cudaGetErrorString(res);\
-	fprintf(stderr, "%s (%d): %s in %s", __FILE__, __LINE__, err_str, #call);	\
-	exit(-1);\
-	}\
-	}
-
 template<class T> void MafiaSolver<T>::touch_dev() {
 	char h_arr[1], *d_arr;
 	CHECK(cudaMalloc((void**)&d_arr, 1));
@@ -66,7 +55,6 @@ template<class T> void MafiaSolver<T>::compute_limits_dev() {
 template<class T>
 __global__ void histo_kernel
 (T* psd, int n, double pmin, double piwidth, int *histo, int nbins) {
-	// TODO: do in local memory
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	if(i >= n)
 		return;
@@ -80,6 +68,33 @@ template __global__ void histo_kernel
 template __global__ void histo_kernel
 (double* psd, int n, double pmin, double piwidth, int *histo, int nbins);
 
+/** bins in shared memory
+		@param nels number of input elements to be processed by each input thread
+ */
+extern __shared__ int lhisto[];
+template<class T>
+__global__ void local_histo_kernel
+(T* psd, int n, double pmin, double piwidth, int *histo, int nbins, int nels) {
+	// zero shared memory bins
+	int ii = threadIdx.x;
+	int bs = blockDim.x;
+	for(int ibin = ii; ibin < nbins; ibin += bs) 
+		lhisto[ibin] = 0;
+	__syncthreads();
+	// compute the histogram in shared memory
+	int istart = ii + blockIdx.x * bs * nels;
+	int iend = min(ii + (blockIdx.x + 1) * bs * nels, n);
+	for(int i = istart; i < iend; i += bs) {
+		int ibin = (int)floor((psd[i] - pmin) * piwidth);
+		ibin = min(max(ibin, 0), nbins - 1);
+		atomicAdd(lhisto + ibin, 1);		
+	}
+	__syncthreads();
+	// accumulate the histogram into the global memory
+	for(int ibin = ii; ibin < nbins; ibin += bs)
+		atomicAdd(histo + ibin, *(lhisto + ibin));
+}  // local_histo_kernel
+
 template<class T> void MafiaSolver<T>::compute_histo_dev(int idim) {
 	int nbins = nbinss[idim];
 	// on-device data for a histogram
@@ -88,11 +103,15 @@ template<class T> void MafiaSolver<T>::compute_histo_dev(int idim) {
 	CHECK(cudaMalloc((void**)&d_histo, histo_sz));
 	CHECK(cudaMemset(d_histo, 0, histo_sz));
 	// kernel call
-	// TODO: handle more than 16M points
+	// TODO: handle more than 256M points
 	size_t bs = 256;
-	histo_kernel<<<divup(n, bs), bs>>>
+	//histo_kernel<<<divup(n, bs), bs>>>
+	//	(d_ps + idim * n, n, pmins[idim], nbins / (pmaxs[idim] - pmins[idim]), 
+	//	 d_histo, nbins);	
+	int nels = 16;
+	local_histo_kernel<<<divup(n, bs * nels), bs, nbins * sizeof(int)>>>
 		(d_ps + idim * n, n, pmins[idim], nbins / (pmaxs[idim] - pmins[idim]), 
-		 d_histo, nbins);	
+		 d_histo, nbins, nels);	
 	CHECK(cudaDeviceSynchronize());
 	
 	// copy the data back

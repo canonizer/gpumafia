@@ -26,6 +26,9 @@ static struct option long_opts[] = {
 	{0, 0, 0, 0}
 };
 
+// global options storage
+Options *Options::opts = 0;
+
 Options::Options(int argc, char **argv) 
 	: in_path(0), out_path(0), min_nbins(1000), min_nwindows(5), max_nwindows(20),
 		alpha(1.5), beta(0.25), flags(OptionSetDedup | OptionUseBitmaps) {
@@ -113,6 +116,10 @@ Options::Options(int argc, char **argv)
 	strncpy(out_path, in_path, base_len);
 	
 } // Options
+
+void Options::parse_cmdline(int argc, char **argv) {
+	opts = new Options(argc, argv);
+}  // parse_cmdline
 
 void Options::parse_double(const char *opt, double *pval) {
 	if(!sscanf(optarg, "%lf", pval)) {

@@ -93,3 +93,19 @@ without profiling.
 1) Porting to CUDA, now computing histograms on device. Using the device gives
 some acceleration, even on 100K points. It should be better for 10M points, for
 which we'll now do experiments.
+
+17.12.2012
+
+1) The application runs on CUDA. Now trying to use pinned host memory instead of
+usual malloc() to allocate bulk point data.
+
+2) Using pinned host memory for bulk allocation reduced histogram computation
+time (which includes copying) from 0.42s to 0.32s for 10M 10d points. Now will
+use proper atomics in histogram computation. 
+
+3) Using atomics with shared memory reduced the overhead greatly. Histogram
+computation now takes about 0.17-0.18 s, of which roughly 0.16 s is moving data
+from host (pinned memory) to GPU (at the rate of 6 GB/s). It makes no sense to
+optimize histogram processing further. Neither is doing overlap with streams
+useful, as the bulk of the time is taken by communication. What is required is
+to do a commit, then do host vs. GPU measurements, and send the report.

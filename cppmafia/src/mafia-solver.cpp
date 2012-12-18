@@ -113,7 +113,7 @@ MafiaSolver<T>::~MafiaSolver() {
 	free(nbinss);
 	free(histos);
 	free(histo_data);
-}
+}  // ~MafiaSolver
 
 template<class T>
 void MafiaSolver<T>::build_histos() {

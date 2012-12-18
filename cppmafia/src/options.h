@@ -25,6 +25,8 @@ struct Options {
 	Options(int argc, char **argv);
 	/** destructor for the options class */
 	~Options();	
+	/** parses the command line to construct global options */
+	static void parse_cmdline(int argc, char **argv);
 private:
 	/** prints the program's usage and exists with a specific code */
 	static void print_usage(int exit_code);
@@ -55,6 +57,15 @@ public:
 	double beta;
 	/** the option flags*/
 	int flags;
+private:
+	/** the default global options */
+	static Options *opts;
+public:
+	/** gets the global options */
+	inline static const Options &options() { return *opts; }
+	/** checks whether the options indicate that device must be used */
+	inline bool use_device() const { return flags & OptionUseDevice; }
+
 };  // struct Options
 
 #endif

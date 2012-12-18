@@ -60,7 +60,7 @@ template<class T> void read_points
 
   // just fill in the points
 	int n = *npoints, d = *ndims;
-  *points = (T*)malloc(sizeof(**points) * *ndims * *npoints);
+  *points = (T*)bulk_alloc(sizeof(**points) * *ndims * *npoints);
 	T *ps = *points;
   //for(size_t icoord = 0; icoord < *ndims * *npoints; icoord++)
   //  (*points)[icoord] = vpoints[icoord];

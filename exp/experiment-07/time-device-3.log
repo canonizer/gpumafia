@@ -1,0 +1,12 @@
+workdir: /homeb/zam/adinetz/mafia/exp/experiment-07
+running on 1 cpus ...
+reading points: 23.129101 s
+building histogram: 0.173828 s
+building windows: 0.000044 s
+building bitmaps: 0.030417 s
+finding and deduplicating CDUs: 0.000023 s
+finding dense CDUs: 0.015332 s
+finding unjoined DUs: 0.000003 s
+building graph: 0.000002 s
+building clusters: 0.112451 s
+writing data: 1.176910 s
