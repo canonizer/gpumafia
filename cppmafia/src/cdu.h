@@ -64,16 +64,16 @@ class Cdu : public ref_object {
 	bool is_assimilated_into(const Cdu &cdu2) const;
   /** checks whether the CDU contains the point */
   template<class T> bool contains_point
-	(const T *ps, int n, int d, int i, const vector<vector<Window> > &ws) const;
+	(const T *ps, int n, int d, int i, const vector<Window> &ws) const;
   /** counts the points inside the CDU (the naive way), also sets the point count */
   template<class T> int count_points_direct
-	(const T* ps, int n, int d, const vector<vector<Window> > &ws);
+	(const T* ps, int n, int d, const vector<Window> &ws);
 	/** conts the points inside the CDU using bitmaps from windows, and also sets
 			the point count */
 	int count_points_bitmaps
-	(int n, const vector<vector<Window> > & ws);
+	(int nwords, unsigned *bmps, const vector<Window> &ws);
 	/** checks whether CDU is dense with respect to window thresholds */
-	bool is_dense(const vector<vector<Window> > &ws) const;
+	bool is_dense(const vector<Window> &ws) const;
 	/** checks whether this DU shares a face with another one; 
 			@notes it returns false if two DUs are the same
 	 */

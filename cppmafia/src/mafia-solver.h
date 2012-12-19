@@ -48,7 +48,7 @@ class MafiaSolver {
 	/** builds point membership bitmaps for dense windows */
 	void build_bitmaps();
 	/** computes a bitmap for a single window on host */
-	void compute_bitmap_host(int idim, int iwin);
+	void compute_bitmap_host(int iwin);
   /** finds the candidate dense units */
   void find_cdus();
 	/** deduplicate the CDUs found */
@@ -57,6 +57,8 @@ class MafiaSolver {
 	void naive_dedup_cdus();
 	/** find the dense units from current CDUs */
 	void find_dense_cdus();
+	/** counts points on host and places point counts to npoints of CDUs */
+	void count_points_host();
 	/** clears away dense units which are new or unassimilated */
 	void find_unjoined_dus();
 	/** builds the graph of DUs */
@@ -93,8 +95,12 @@ class MafiaSolver {
 			tasks
 			*/
 	void compute_histo_dev(int idim);
+	/** allocates data for bitmaps on device */
+	void alloc_bitmaps_dev();
 	/** computes a bitmap for a single window on device */
-	void compute_bitmap_dev(int idim, int iwin);
+	void compute_bitmap_dev(int iwin);
+	/** counts the points on devices; currently, always uses bitmaps */
+	void count_points_dev();
 	/** frees the resources on the device */
 	void free_dev_resources();
 #endif
@@ -117,7 +123,7 @@ class MafiaSolver {
   int d; 
   /** number of points in the data */
   int n;
-  /** the data points, stored in dim-first order */
+  /** the data points, stored in dim-major order */
   const T *ps;
 	/** the data points stored on device */
 	T *d_ps;
@@ -154,6 +160,14 @@ class MafiaSolver {
 	int *nbinss;
   /** windows along each dimension */
   vector<vector<Window> > windows;
+	/** dense windows in all dimensions, in a single array */
+	vector<Window> dense_ws;
+	/** the host bitmap data, stored in window-major order */
+	unsigned *bmps;
+	/** the device bitmap data, stored in window-major order */
+	unsigned *d_bmps;
+	/** the number words used to store a single bitmap */
+	int nwords;
   /** terminal dense units which will be connected into a graph;
    each array corresponds to a single dimensionality */
   vector<vector<ref<Cdu> > > terminal_dus;

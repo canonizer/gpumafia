@@ -109,3 +109,9 @@ from host (pinned memory) to GPU (at the rate of 6 GB/s). It makes no sense to
 optimize histogram processing further. Neither is doing overlap with streams
 useful, as the bulk of the time is taken by communication. What is required is
 to do a commit, then do host vs. GPU measurements, and send the report.
+
+19.12.2012
+
+1) Moved point counting to GPUs. This gave 5-50x improvement to point counting
+phase (depending on the number of points, more points meanes more improvement),
+and overall 5-10x improvement to the time spent in computational phase. 

@@ -7,7 +7,7 @@
 
 struct Window {
   /** creates a new window; threshold is initialized later */
-  Window(int left, int width, int max);
+  Window(int idim, int left, int width, int max);
   /** checks whether this window can merge with the other one 
       @note only successive windows will be merged 
    */
@@ -26,7 +26,9 @@ struct Window {
 	bool is_dense();
   /** non-inclusive right border of the window */
   inline int right() const { return left + width - 1; }
-  
+	
+	/** the dimension to which the window belongs */
+	int idim;
   /** the window width, i.e. the number of bins in the window */
   int width;
   /** the window left bound, i.e. the start of the window */
@@ -40,9 +42,6 @@ struct Window {
   double pleft;
   /** the right boundary of the window in point coordinates */
   double pright;
-	/** the window's bitmap, i.e. the set of points belonging to the window; it is
-  set for dense windows only */
-	bitmap pset;
 };
 
 #endif

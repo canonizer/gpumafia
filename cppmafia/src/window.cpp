@@ -5,7 +5,8 @@
 
 using namespace std;
 
-Window::Window(int left, int width, int max) {
+Window::Window(int idim, int left, int width, int max) {
+	this->idim = idim;
   this->left = left;
   this->width = width;
   this->max = max;
@@ -23,7 +24,8 @@ bool Window::can_merge_with(const Window &w2, double beta) const {
 }
 
 Window Window::merge_with(const Window &w2) const {
-  Window w = Window(min(left, w2.left), width + w2.width, ::max(max, w2.max));
+  Window w = Window(idim, min(left, w2.left), width + w2.width, ::max(max, w2.max));
+	w.idim = idim;
   w.pleft = ::min(pleft, w2.pleft);
   w.pright = ::max(pright, w2.pright);
 	return w;

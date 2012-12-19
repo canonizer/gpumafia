@@ -17,7 +17,8 @@
 template<class T>
 MafiaSolver<T>::MafiaSolver
 (const T *points, int n, int d, const Options &opts) : 
-	d_ps(0) {
+	d_ps(0), pmins(0), pmaxs(0), nbinss(0), histo_data(0), histos(0), bmps(0), 
+	d_bmps(0) {
   // initialize the class
   this->ps = points;
   this->n = n;
@@ -30,9 +31,6 @@ MafiaSolver<T>::MafiaSolver
   this->eps = 1e-8;
 	this->flags = opts.flags;
   
-  /** zero out all pointer fields */
-  pmins = pmaxs = 0;
-
 	/** initialize the device if it is used */
 	if(use_device())
 		touch_dev();
@@ -42,20 +40,24 @@ template<class T>
 vector<vector<int> > MafiaSolver<T>::find_clusters() {
   vector<vector<int> > cluster_idxs;
 	start_phase(PhaseBuildHisto);
+	//fprintf(stderr, "building histos\n");
   build_histos();
 	if(is_verbose())
 	 	print_histos();
 	start_phase(PhaseBuildWindows);
+	//fprintf(stderr, "building windows\n");
   build_windows();
 	if(is_verbose())
 	 	print_windows();
 	start_phase(PhaseBuildBitmaps);
+	//fprintf(stderr, "building bitmaps\n");
 	if(use_bitmaps()) {
 		build_bitmaps();
 		// if(is_verbose())
 		//   print_bitmaps();
 	}
   cur_dim = 0;
+	//fprintf(stderr, "main loop\n");
   do {
 		if(is_verbose())
 			printf("dimension %d\n", cur_dim);
@@ -76,10 +78,10 @@ vector<vector<int> > MafiaSolver<T>::find_clusters() {
 		//printf("finding DUs\n");
 		start_phase(PhaseFindDense);
 		find_dense_cdus();
-		// if(is_verbose()) {
-		// 	printf("found DUs: ");
-		// 	print_dus(new_dus);
-		// }
+		if(is_verbose()) {
+			printf("found DUs: ");
+		 	print_dus(new_dus);
+		}
 		if(cur_dim > 0) {
 			//printf("finding unjoined DUs\n");
 			start_phase(PhaseFindUnjoined);
@@ -95,11 +97,14 @@ vector<vector<int> > MafiaSolver<T>::find_clusters() {
 	//print_terminal_dus();
 	// find connected components in the graph
 	start_phase(PhaseBuildGraph);
+	//fprintf(stderr, "building graph\n");
 	build_du_graph();
 	build_du_clusters();
 	start_phase(PhaseBuildClusters);
+	//fprintf(stderr, "building final cluster\n");
 	// build cluster indices and return them
 	build_clusters();
+	//fprintf(stderr, "finished with clusters\n");
 	return clusters;
 }  // find_clusters()
 
@@ -113,6 +118,7 @@ MafiaSolver<T>::~MafiaSolver() {
 	free(nbinss);
 	free(histos);
 	free(histo_data);
+	bulk_free(bmps);
 }  // ~MafiaSolver
 
 template<class T>
@@ -200,7 +206,7 @@ void MafiaSolver<T>::build_uniform_windows
     int wmax = 0;
     for(int ibin = left; ibin < right; ibin++) 
       wmax = max(wmax, histo[ibin]);
-    Window w = Window(left, width, wmax);
+    Window w = Window(idim, left, width, wmax);
     w.pleft = pmins[idim] + left * (pmaxs[idim] - pmins[idim]) / nbins;
     w.pright = pmins[idim] + right * (pmaxs[idim] - pmins[idim]) / nbins;
     ws.push_back(w);
@@ -209,35 +215,38 @@ void MafiaSolver<T>::build_uniform_windows
 
 template<class T>
 void MafiaSolver<T>::build_bitmaps() {
-	for(int idim = 0; idim < d; idim++) {
-		vector<Window> &ws = windows[idim];
-		for(int iw = 0; iw < ws.size(); iw++) {
-			Window &w = ws[iw];
-			if(w.is_dense()) {
-				// build the bitmap for the window
-				w.pset = bitmap(n);
-				if(use_device())
-					compute_bitmap_dev(idim, iw);
-				else
-					compute_bitmap_host(idim, iw);
-			}
-		}  // for(iw)
-	}  // for(idim)
+	int nwindows = dense_ws.size();
+	nwords = divup(n, sizeof(*bmps) * 8);
+	size_t bmp_sz = sizeof(*bmps) * nwindows * nwords;
+	bmps = (unsigned *)bulk_alloc(bmp_sz);
+	memset(bmps, 0, bmp_sz);
+	if(use_device())
+		alloc_bitmaps_dev();
+	for(int iwin = 0; iwin < nwindows; iwin++)
+		if(use_device())
+			compute_bitmap_dev(iwin);
+		else
+			compute_bitmap_host(iwin);
 }  // build_bitmaps
 
 template<class T>
-void MafiaSolver<T>::compute_bitmap_host(int idim, int iwin) {
+void MafiaSolver<T>::compute_bitmap_host(int iwin) {
 	// check all points for membership (only the coordinate in this 
 	// dimension)
-	Window &w = windows[idim][iwin];
+	Window &w = dense_ws[iwin];
+	int idim = w.idim;
 	for(int i = 0; i < n; i++) {
-		if(w.pleft <= PS(i, idim) && PS(i, idim) < w.pright)
-			w.pset[i] = true;
+		int iword = i / (sizeof(*bmps) * 8);
+		int ibit = i % (sizeof(*bmps) * 8);
+		unsigned bit = w.pleft <= PS(i, idim) && PS(i, idim) < w.pright ? 1u : 0u;
+		BMPS(iwin, iword) |= bit << ibit;
 	}
 }  // compute_bitmap_host()
 
 template<class T>
 void MafiaSolver<T>::build_windows() {
+
+	// build windows for each dimension
   for(int idim = 0; idim < d; idim++) {
     if(pmaxs[idim] - pmins[idim] > eps) {
 
@@ -275,6 +284,16 @@ void MafiaSolver<T>::build_windows() {
       windows.push_back(vector<Window>());
     }
   } // for each dimension
+
+	// now separate windows which are dense
+	for(int idim = 0; idim < d; idim++) {
+		vector<Window> &dim_windows = windows[idim];
+		for(int iwin = 0; iwin < dim_windows.size(); iwin++) {
+			Window &w = dim_windows[iwin];
+			if(w.is_dense())
+				dense_ws.push_back(w);
+		}
+	}  // for(idim)
 }  // build_windows
 
 template<class T>
@@ -306,11 +325,8 @@ void MafiaSolver<T>::find_cdus() {
 		}
 	} else {
 		// just add all windows as CDUs
-		for(int idim = 0; idim < d; idim++) {
-			vector<Window> &dim_windows = windows[idim];
-			for(int iwin = 0; iwin < dim_windows.size(); iwin++)
-				cdus.push_back(new Cdu(idim, iwin));
-		}
+		for(int iwin = 0; iwin < dense_ws.size(); iwin++)
+			cdus.push_back(new Cdu(dense_ws[iwin].idim, iwin));
 	}  // if(cur_dim > 0)
 }  // find_cdus
 
@@ -345,18 +361,28 @@ void MafiaSolver<T>::naive_dedup_cdus() {
 template<class T>
 void MafiaSolver<T>::find_dense_cdus() {
 	new_dus.clear();
+	// for dim 0, point counting is always done on host
+	if(use_device() && cur_dim > 0)
+		count_points_dev();
+	else
+		count_points_host();
+	for(int icdu = 0; icdu < cdus.size(); icdu++) {
+		Cdu &cdu = *cdus[icdu];
+		if(cdu.is_dense(dense_ws))
+			new_dus.push_back(&cdu);
+	}  // for(cdu)
+}  // find_dense_cdus
+
+template<class T>
+void MafiaSolver<T>::count_points_host() {
 	for(int icdu = 0; icdu < cdus.size(); icdu++) {
 		Cdu &cdu = *cdus[icdu];
 		if(use_bitmaps())
-			cdu.count_points_bitmaps(n, windows);
+			cdu.count_points_bitmaps(nwords, bmps, dense_ws);
 		else 
-			cdu.count_points_direct(ps, n, d, windows);
-		if(cdu.is_dense(windows)) {
-			// dense CDU, add to new DUs
-			new_dus.push_back(&cdu);
-		}
+			cdu.count_points_direct(ps, n, d, dense_ws);
 	}  // for(cdu)
-}  // find_dense_cdus
+}  // count_points_host
 
 template<class T>
 void MafiaSolver<T>::find_unjoined_dus() {
@@ -451,19 +477,23 @@ void MafiaSolver<T>::build_clusters() {
 				}					
 			}
 		}*/
-		bitmap pset(n);
-		// find point set, then transform it into a set of indices
-		for(int idu = 0; idu < du_cluster.size(); idu++) {
-			Cdu &du = *du_cluster[idu];
-			dimpair_t dp0 = du.coords[0];
-			bitmap duset = windows[dp0.dim][dp0.win].pset.clone();
-			for(int icoord = 1; icoord < du.coords.size(); icoord++) {
-				dimpair_t dp = du.coords[icoord];
-				duset &= windows[dp.dim][dp.win].pset;
-			}				
-			pset |= duset;
-		}
-		pset.expand_into(cluster);
+		for(int iword = 0; iword < nwords; iword++) {
+			unsigned cword = 0u;
+			// find point set, then transform it into a set of indices
+			for(int idu = 0; idu < du_cluster.size(); idu++) {
+				Cdu &du = *du_cluster[idu];
+				unsigned duword = ~0u;
+				for(int icoord = 0; icoord < du.coords.size(); icoord++) {
+					dimpair_t dp = du.coords[icoord];
+					duword &= BMPS(dp.win, iword);
+				}
+				cword |= duword;
+			}  // for(idu)
+			// now iterate through 1-bits in the word
+			for(int ibit = 0; ibit < sizeof(cword) * 8; ibit++)
+				if((cword >> ibit) & 1u)
+					cluster.push_back(iword * (int)sizeof(cword) * 8 + ibit);
+		}  // for(iword)
 	}  // for(iclu)
 }  // build_clusters
 
@@ -499,20 +529,20 @@ void MafiaSolver<T>::print_windows() {
 
 template<class T>
 void MafiaSolver<T>::print_bitmaps() {
-  // print the windows
-  for(int idim = 0; idim < d; idim++) {
-    vector<Window> &dim_windows = windows[idim];
-    printf("dimension %d: [\n", idim);
-    for(int iwin = 0; iwin < dim_windows.size(); iwin++) {
-      Window &w = dim_windows[iwin];
-			if(!w.is_dense())
-				continue;
-			w.pset.print();
-			if(iwin < dim_windows.size() - 1)
-				printf("\n");
-    }
-    printf("]\n");
-  }
+	printf("[\n");
+	for(int iwin = 0; iwin < dense_ws.size(); iwin++) {
+		Window &w = dense_ws[iwin];
+		printf("[");
+		for(int iword = 0; iword < nwords; iword++) {
+			printf("%0x\n", BMPS(iwin, iword));
+			if(iword < nwords - 1)
+				printf(" ");
+		}
+		printf("]");
+		if(iwin < dense_ws.size() - 1)
+			printf("\n");
+	}
+	printf("]\n");
 }  // print_bitmaps
 
 template<class T>

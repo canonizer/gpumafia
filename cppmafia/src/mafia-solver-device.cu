@@ -27,10 +27,7 @@ template<class T> void MafiaSolver<T>::copy_ps_to_device() {
 }
 
 template<class T> void MafiaSolver<T>::compute_limits_dev() {
-	//T *d_pmins, *d_pmaxs;
-	//size_t limits_sz = sizeof(*d_pmins) * d;
-	//CHECK(cudaMalloc((void**)&d_pmins, limits_sz));
-	//CHECK(cudaMalloc((void**)&d_pmaxs, limits_sz));
+	// compute limits using thrust
 	device_ptr<T> d_psptr(d_ps);
 	for(int idim = 0; idim < d; idim++) {
 		pmins[idim] = reduce(d_psptr + idim * n, d_psptr + (idim + 1) * n, 
@@ -38,10 +35,6 @@ template<class T> void MafiaSolver<T>::compute_limits_dev() {
 		pmaxs[idim] = reduce(d_psptr + idim * n, d_psptr + (idim + 1) * n, 
 												 -std::numeric_limits<T>::infinity(), maximum<T>());
 	}	
-	//CHECK(cudaMemcpy(pmins, d_pmins, limits_sz, cudaMemcpyDeviceToHost));
-	//CHECK(cudaMemcpy(pmaxs, d_pmaxs, limits_sz, cudaMemcpyDeviceToHost));
-	//cudaFree(pmins);
-	//cudaFree(pmaxs);
 }  // compute_limits_dev
 
 /** histogram computation kernel 
@@ -119,6 +112,13 @@ template<class T> void MafiaSolver<T>::compute_histo_dev(int idim) {
 	cudaFree(d_histo);
 }  // compute_histo_dev
 
+template<class T> 
+void MafiaSolver<T>::alloc_bitmaps_dev() {
+	int nwindows = dense_ws.size();
+	CHECK(cudaMalloc((void**)&d_bmps, sizeof(*d_bmps) * nwindows * nwords));
+	CHECK(cudaMemset(d_bmps, 0, sizeof(*d_bmps) * nwindows * nwords));
+}  // alloc_bitmaps_dev
+
 /** kernel to compute the bitmaps on device 
 		@param bmp bitmap data on device
 		@param nwords number of 32-bit words in the bitmap
@@ -157,29 +157,99 @@ template __global__ void bitmap_kernel
 (unsigned *bmp, int nwords, double *ps, int n, double pleft, double pright);
 
 template<class T> 
-void MafiaSolver<T>::compute_bitmap_dev(int idim, int iwin) {
-	Window &w = windows[idim][iwin];
+void MafiaSolver<T>::compute_bitmap_dev(int iwin) {
+	Window &w = dense_ws[iwin];
+	int idim = w.idim;
 	// allocate memory on device
-	unsigned *d_bmp;
-	int nwords = w.pset->n, bmp_sz = nwords * sizeof(*d_bmp);
-	CHECK(cudaMalloc((void**)&d_bmp, bmp_sz));
-	CHECK(cudaMemset(d_bmp, 0, bmp_sz));
+	unsigned *h_bmp = bmps + iwin * nwords, *d_bmp = d_bmps + iwin * nwords;
 	// call the kernel
 	size_t bs = 256;
 	//bitmap_kernel<<<divup(nwords, bs), bs>>>
 	//	(d_bmp, nwords, d_ps + n * idim, n, (T)w.pleft, (T)w.pright);
 	bitmap_kernel<<<divup(n, bs), bs>>>
 		(d_bmp, nwords, d_ps + n * idim, n, (T)w.pleft, (T)w.pright);
-	cudaDeviceSynchronize();
+	CHECK(cudaDeviceSynchronize());
 
 	// copy data back
-	CHECK(cudaMemcpy(w.pset->data, d_bmp, bmp_sz, cudaMemcpyDeviceToHost));
-	cudaFree(d_bmp);
+	int bmp_sz = nwords * sizeof(*d_bmp);
+	CHECK(cudaMemcpy(h_bmp, d_bmp, bmp_sz, cudaMemcpyDeviceToHost));
 }  // compute_bitmap_dev
+
+__global__ void point_count_kernel
+(int *pcounts, int *iwins, int ncdus, int ncoords, unsigned *bmps, int nwords,
+ int nwords_pthr) {
+	int icdu = threadIdx.y + blockIdx.y * blockDim.y;
+	if(icdu >= ncdus)
+		return;
+	int bs = blockDim.x;
+	int istart = threadIdx.x + blockIdx.x * bs * nwords_pthr;
+	int iend = min(istart + nwords_pthr * bs, nwords);
+	int pcount = 0;
+	for(int iword = istart; iword < iend; iword += bs) {
+		unsigned word = ~0u;
+		for(int icoord = 0; icoord < ncoords; icoord++) {
+			int iwin = iwins[icdu * ncoords + icoord];
+			word &= bmps[iwin * nwords + iword];
+		}
+		pcount += __popc(word);
+	}
+	atomicAdd(pcounts + icdu, pcount);
+}  // point_count_kernel
+
+template<class T>
+void MafiaSolver<T>::count_points_dev() {
+	// copy CDU data to device, first aggregate on host; just window indices will do
+	int ncdus = cdus.size();
+	int ncoords = cur_dim + 1;
+	// window numbers, in CDU-major order
+	size_t win_sz = sizeof(int) * ncdus * ncoords;
+	int *h_iwins = (int*)bulk_alloc(win_sz);
+	for(int icdu = 0; icdu < ncdus; icdu++) {
+		Cdu &cdu = *cdus[icdu];
+		for(int icoord = 0; icoord < ncoords; icoord++)
+			h_iwins[icdu * ncoords + icoord] = cdu.coords[icoord].win;
+	}
+	int *d_iwins; // window numbers, on device
+	CHECK(cudaMalloc((void**)&d_iwins, win_sz));
+	CHECK(cudaMemcpy(d_iwins, h_iwins, win_sz, cudaMemcpyHostToDevice));
+	bulk_free(h_iwins);
+	
+	// run the kernel on device
+	int *h_pcounts, *d_pcounts;  // point counts on host and device
+	size_t pcount_sz = sizeof(*h_pcounts) * ncdus;
+	CHECK(cudaMalloc((void**)&d_pcounts, pcount_sz));
+	CHECK(cudaMemset(d_pcounts, 0, pcount_sz));
+	int nwords_pthr = min(max(nwords / 64, 2), 64); // number of words per thread
+	dim3 bs(64, 8);  // block size
+	// iterate over CDU parts
+	int ncdus_ppart = 32768 * bs.y;
+	int ncdu_parts = divup(ncdus, ncdus_ppart);
+	for(int icdu_part = 0; icdu_part < ncdu_parts; icdu_part++) {
+		int cur_ncdus = min(ncdus_ppart, ncdus - icdu_part * ncdus_ppart);
+		dim3 grid(divup(nwords, nwords_pthr * bs.x), divup(cur_ncdus, bs.y));
+		// TODO: support more than 2**18-4 CDUs
+		point_count_kernel<<<grid, bs>>>
+			(d_pcounts + icdu_part * ncdus_ppart, d_iwins + icdu_part * ncdus_ppart, cur_ncdus, ncoords, 
+			 d_bmps, nwords, nwords_pthr);
+	}
+	CHECK(cudaThreadSynchronize());
+
+	// copy data back
+	h_pcounts = (int*)bulk_alloc(pcount_sz);
+	CHECK(cudaMemcpy(h_pcounts, d_pcounts, pcount_sz, cudaMemcpyDeviceToHost));
+	for(int icdu = 0; icdu < ncdus; icdu++)
+		cdus[icdu]->npoints = h_pcounts[icdu];
+
+	// free everything
+	cudaFree(d_iwins);
+	cudaFree(d_pcounts);
+	bulk_free(h_pcounts);
+}  // count_points_dev
 
 template<class T>
 void MafiaSolver<T>::free_dev_resources() {
 	cudaFree(d_ps);
+	cudaFree(d_bmps);
 }  // free_dev_resources
 
 // explicit instantiations

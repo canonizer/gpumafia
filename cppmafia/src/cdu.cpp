@@ -144,11 +144,11 @@ bool Cdu::is_assimilated_into(const Cdu& cdu2) const {
 }  // is_assimilated_into
 
 template<class T> bool Cdu::contains_point
-(const T *ps, int n, int d, int i, const vector<vector<Window> > &ws) const {
+(const T *ps, int n, int d, int i, const vector<Window> &ws) const {
   for(int icoord = 0; icoord < coords.size(); icoord++) {
     dimpair_t dp = coords[icoord];
     int dim = dp.dim;
-    const Window &w = ws[dim][dp.win];
+    const Window &w = ws[dp.win];
     if(PS(i, dim) < w.pleft || PS(i, dim) >= w.pright)
       return false;
   }
@@ -156,10 +156,10 @@ template<class T> bool Cdu::contains_point
 }  // contains_point()
 
 template<class T> int Cdu::count_points_direct
-(const T* ps, int n, int d, const vector<vector<Window> > &ws) {
+(const T* ps, int n, int d, const vector<Window> &ws) {
 	if(coords.size() == 1) {
 		dimpair_t dp = coords[0];
-		const Window &w = ws[dp.dim][dp.win];
+		const Window &w = ws[dp.win];
 		// 1-d, npoints = window.width * window.max
 		npoints = w.width * w.max;
 	} else {
@@ -174,31 +174,29 @@ template<class T> int Cdu::count_points_direct
 }  // count_points_direct
 
 int Cdu::count_points_bitmaps
-(int n, const vector<vector<Window> > & ws) {
+(int nwords, unsigned *bmps, const vector<Window> & ws) {
 	if(coords.size() == 1) {
 		dimpair_t dp = coords[0];
-		const Window &w = ws[dp.dim][dp.win];
+		const Window &w = ws[dp.win];
 		// 1-d, npoints = window.width * window.max
 		npoints = w.width * w.max;
 	} else {
 		// multi-d, do real point counting
 		npoints = 0;
-		dimpair_t dp0 = coords[0], dp1 = coords[1];
-		bitmap pset = ws[dp0.dim][dp0.win].pset & ws[dp1.dim][dp1.win].pset;
-		//bitmap pset = ws[dp0.dim][dp0.win].pset;
-		for(int icoord = 2; icoord < coords.size(); icoord++) {
-			dimpair_t dp = coords[icoord];
-			pset &= ws[dp.dim][dp.win].pset;
-		}
-		npoints = pset.count();
+		for(int iword = 0; iword < nwords; iword++) {
+			unsigned word = ~0u;
+			for(int icoord = 0; icoord < coords.size(); icoord++)
+				word &= BMPS(coords[icoord].win, iword);
+			npoints += __builtin_popcount(word);
+		}  // for(iword)
 	}
   return npoints;
 }  // count_points
 
-bool Cdu::is_dense(const vector<vector<Window> > &ws) const {
+bool Cdu::is_dense(const vector<Window> &ws) const {
 	for(int icoord = 0; icoord < coords.size(); icoord++) {
 		dimpair_t dp = coords[icoord];
-		const Window &w = ws[dp.dim][dp.win];
+		const Window &w = ws[dp.win];
 		if(npoints < w.threshold)
 			return false;
 	}
@@ -223,10 +221,10 @@ bool Cdu::has_common_face_with(const Cdu &cdu2) const {
 
 // explicit instantiations
 template bool Cdu::contains_point
-(const float *ps, int n, int d, int i, const vector<vector<Window> > &ws) const;
+(const float *ps, int n, int d, int i, const vector<Window> &ws) const;
 template int Cdu::count_points_direct
-(const float* p, int n, int d, const vector<vector<Window> > &ws);
+(const float* p, int n, int d, const vector<Window> &ws);
 template bool Cdu::contains_point
-(const double *p, int n, int d, int i, const vector<vector<Window> > &ws) const;
+(const double *p, int n, int d, int i, const vector<Window> &ws) const;
 template int Cdu::count_points_direct
-(const double* p, int n, int d, const vector<vector<Window> > &ws);
+(const double* p, int n, int d, const vector<Window> &ws);
