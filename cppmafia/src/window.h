@@ -3,8 +3,6 @@
 
 /** @file window.h definition of a single adaptive window  */
 
-#include "bitmap.h"
-
 struct Window {
   /** creates a new window; threshold is initialized later */
   Window(int idim, int left, int width, int max);

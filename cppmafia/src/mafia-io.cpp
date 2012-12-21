@@ -1,6 +1,7 @@
 /** @file mafia-io.cpp implementation of MAFIA helper I/O routines */
 
 #include "mafia-io.h"
+#include "options.h"
 #include "utils.h"
 
 #include <stdio.h>
@@ -75,6 +76,8 @@ template<class T> void read_points
 template<class T> void write_clusters
 (const char* path, T* points, int npoints, int ndims, 
  const vector<vector<int> > &cluster_idxs) {
+	// global options
+	const Options &opts = Options::options();
   // number length
   int num_len = sizeof(cluster_idxs.size()) * 3;
   // buffer for file names
@@ -82,13 +85,18 @@ template<class T> void write_clusters
   char dat_name[name_len + 1], idx_name[name_len + 1];
   for(int icluster = 0; icluster < cluster_idxs.size(); icluster++) {
     // open files
-    //sprintf(dat_name, "%s-%d.dat", path, icluster);
+    sprintf(dat_name, "%s-%d.dat", path, icluster);
     sprintf(idx_name, "%s-%d.idx", path, icluster);
-    //FILE *dat_file = fopen(dat_name, "w");
     FILE *idx_file = fopen(idx_name, "w");
-    // if(!dat_file || !idx_file) {
+    FILE *dat_file = 0;
+		if(opts.output_points())
+			dat_file = fopen(dat_name, "w");
 		if(!idx_file) {
       fprintf(stderr, "cannot write cluster data to file\n");
+      exit(-1);
+    }
+		if(opts.output_points() && !dat_file) {
+      fprintf(stderr, "cannot write point cluster data to file\n");
       exit(-1);
     }
     
@@ -96,19 +104,24 @@ template<class T> void write_clusters
     const vector<int> & cluster = cluster_idxs[icluster];
     for(int ipidx = 0; ipidx < cluster.size(); ipidx++) {
       int pidx = cluster[ipidx];
-      //T *point = points + pidx * ndims;
-      // for(int idim = 0; idim < ndims; idim++) {
-			// 	fprintf(dat_file, "%.9lf", (double)point[idim]);
-			// 	if(idim < ndims - 1)
-			// 		fprintf(dat_file, "\t");
-      // }  // for each point coordinate
+      T *point = points + pidx * ndims;
+			if(opts.output_points()) {
+				for(int idim = 0; idim < ndims; idim++) {
+					fprintf(dat_file, "%.9lf", (double)point[idim]);
+					if(idim < ndims - 1)
+						fprintf(dat_file, "\t");
+				}  // for each point coordinate
+			}
       fprintf(idx_file, "%d\n", pidx);
-      // fprintf(dat_file, "\n");
+			if(opts.output_points())
+				fprintf(dat_file, "\n");
     }  // for each point in cluster
 
     // close the files
-    // fflush(dat_file);
-    // fclose(dat_file);
+		if(opts.output_points()) {
+			fflush(dat_file);
+			fclose(dat_file);
+		}
     fflush(idx_file);
     fclose(idx_file);
   }  // for each cluster

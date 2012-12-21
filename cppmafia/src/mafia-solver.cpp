@@ -31,51 +31,47 @@ MafiaSolver<T>::MafiaSolver
   this->eps = 1e-8;
 	this->flags = opts.flags;
   
-	/** initialize the device if it is used */
+#ifdef MAFIA_USE_DEVICE
+	// initialize the device if it is used
 	if(use_device())
 		touch_dev();
+#endif
 }  // MafiaSolver
 
 template<class T>
 vector<vector<int> > MafiaSolver<T>::find_clusters() {
   vector<vector<int> > cluster_idxs;
 	start_phase(PhaseBuildHisto);
-	//fprintf(stderr, "building histos\n");
   build_histos();
 	if(is_verbose())
 	 	print_histos();
 	start_phase(PhaseBuildWindows);
-	//fprintf(stderr, "building windows\n");
   build_windows();
 	if(is_verbose())
 	 	print_windows();
 	start_phase(PhaseBuildBitmaps);
-	//fprintf(stderr, "building bitmaps\n");
 	if(use_bitmaps()) {
 		build_bitmaps();
-		// if(is_verbose())
+		// if(verbose())
 		//   print_bitmaps();
 	}
   cur_dim = 0;
-	//fprintf(stderr, "main loop\n");
   do {
 		if(is_verbose())
 			printf("dimension %d\n", cur_dim);
 		start_phase(PhaseFindCdus);
 		find_cdus();
-		// if(is_verbose()) {
-		// 	printf("CDUs: ");
-		// 	print_dus(cdus);
-		// }
-		if(cur_dim > 0) {
-			//printf("deduplicating CDUs\n");
-			dedup_cdus();
-			// if(is_verbose()) {
-			// 	printf("dedupped CDUs: ");
-			// 	print_dus(cdus);
-			// }
+		if(is_verbose()) {
+		 	printf("CDUs: ");
+		 	print_dus(cdus);
 		}
-		//printf("finding DUs\n");
+		if(cur_dim > 0) {
+			dedup_cdus();
+			if(is_verbose()) {
+			 	printf("dedupped CDUs: ");
+			 	print_dus(cdus);
+			}
+		}
 		start_phase(PhaseFindDense);
 		find_dense_cdus();
 		if(is_verbose()) {
@@ -83,35 +79,32 @@ vector<vector<int> > MafiaSolver<T>::find_clusters() {
 		 	print_dus(new_dus);
 		}
 		if(cur_dim > 0) {
-			//printf("finding unjoined DUs\n");
 			start_phase(PhaseFindUnjoined);
 			find_unjoined_dus();
 			if(is_verbose()) {
-				printf("current terminal DUs: ");
+				printf("new terminal DUs: ");
 				print_dus(terminal_dus[cur_dim - 1]);
 			}
 		}
 		cur_dus = new_dus;
     cur_dim++;
   } while(cdus.size() > 0);
-	//print_terminal_dus();
 	// find connected components in the graph
 	start_phase(PhaseBuildGraph);
-	//fprintf(stderr, "building graph\n");
 	build_du_graph();
 	build_du_clusters();
 	start_phase(PhaseBuildClusters);
-	//fprintf(stderr, "building final cluster\n");
-	// build cluster indices and return them
+	// build clusters as index lists
 	build_clusters();
-	//fprintf(stderr, "finished with clusters\n");
 	return clusters;
 }  // find_clusters()
 
 template <class T>
 MafiaSolver<T>::~MafiaSolver() {
+#ifdef MAFIA_USE_DEVICE
 	if(use_device())
 		free_dev_resources();
+#endif
   // free the memory
   free(pmins);
   free(pmaxs);
@@ -123,16 +116,20 @@ MafiaSolver<T>::~MafiaSolver() {
 
 template<class T>
 void MafiaSolver<T>::build_histos() {
+#ifdef MAFIA_USE_DEVICE
 	if(use_device())
 		copy_ps_to_device();
+#endif
 
   // compute minima and maxima for per-dimension coordinates
   pmins = (T*)malloc(sizeof(*pmins) * d);
   pmaxs = (T*)malloc(sizeof(*pmaxs) * d);
 	nbinss = (int *)malloc(sizeof(*nbinss) * d);
+#ifdef MAFIA_USE_DEVICE
 	if(use_device())
 		compute_limits_dev();
 	else
+#endif
 		compute_limits_host();
 	
 	// count the number of bins in each histogram
@@ -160,9 +157,11 @@ void MafiaSolver<T>::build_histos() {
   
 	// compute the point histograms
   for(int idim = 0; idim < d; idim++) {
+#ifdef MAFIA_USE_DEVICE
 		if(use_device())
 			compute_histo_dev(idim);
 		else
+#endif
 			compute_histo_host(idim);
   } 
 }  // build_histos
@@ -177,7 +176,7 @@ void MafiaSolver<T>::compute_limits_host() {
       pmaxs[idim] = max(pmaxs[idim], PS(i, idim));
     }
   }  // for(idim)
-}
+}  // compute_limits_host
 
 template<class T>
 void MafiaSolver<T>::compute_histo_host(int idim) {
@@ -220,13 +219,18 @@ void MafiaSolver<T>::build_bitmaps() {
 	size_t bmp_sz = sizeof(*bmps) * nwindows * nwords;
 	bmps = (unsigned *)bulk_alloc(bmp_sz);
 	memset(bmps, 0, bmp_sz);
+#ifdef MAFIA_USE_DEVICE
 	if(use_device())
 		alloc_bitmaps_dev();
-	for(int iwin = 0; iwin < nwindows; iwin++)
+#endif
+	for(int iwin = 0; iwin < nwindows; iwin++) {
+#ifdef MAFIA_USE_DEVICE
 		if(use_device())
 			compute_bitmap_dev(iwin);
 		else
+#endif
 			compute_bitmap_host(iwin);
+	}
 }  // build_bitmaps
 
 template<class T>
@@ -362,9 +366,11 @@ template<class T>
 void MafiaSolver<T>::find_dense_cdus() {
 	new_dus.clear();
 	// for dim 0, point counting is always done on host
+#ifdef MAFIA_USE_DEVICE
 	if(use_device() && cur_dim > 0)
 		count_points_dev();
 	else
+#endif
 		count_points_host();
 	for(int icdu = 0; icdu < cdus.size(); icdu++) {
 		Cdu &cdu = *cdus[icdu];
@@ -468,32 +474,34 @@ void MafiaSolver<T>::build_clusters() {
 		vector<ref<Cdu> > &du_cluster = du_clusters[iclu];
 		clusters.push_back(vector<int>());
 		vector<int> &cluster = clusters.back();
-		/*
-		for(int i = 0; i < n; i++) {
-			for(int idu = 0; idu < du_cluster.size(); idu++) {
-				if(du_cluster[idu]->contains_point(ps, n, d, i, windows)) {
-					cluster.push_back(i);
-					break;
-				}					
-			}
-		}*/
-		for(int iword = 0; iword < nwords; iword++) {
-			unsigned cword = 0u;
-			// find point set, then transform it into a set of indices
-			for(int idu = 0; idu < du_cluster.size(); idu++) {
-				Cdu &du = *du_cluster[idu];
-				unsigned duword = ~0u;
-				for(int icoord = 0; icoord < du.coords.size(); icoord++) {
-					dimpair_t dp = du.coords[icoord];
-					duword &= BMPS(dp.win, iword);
-				}
-				cword |= duword;
-			}  // for(idu)
-			// now iterate through 1-bits in the word
-			for(int ibit = 0; ibit < sizeof(cword) * 8; ibit++)
-				if((cword >> ibit) & 1u)
-					cluster.push_back(iword * (int)sizeof(cword) * 8 + ibit);
-		}  // for(iword)
+		if(use_bitmaps()) {
+			for(int iword = 0; iword < nwords; iword++) {
+				unsigned cword = 0u;
+				// find point set, then transform it into a set of indices
+				for(int idu = 0; idu < du_cluster.size(); idu++) {
+					Cdu &du = *du_cluster[idu];
+					unsigned duword = ~0u;
+					for(int icoord = 0; icoord < du.coords.size(); icoord++) {
+						dimpair_t dp = du.coords[icoord];
+						duword &= BMPS(dp.win, iword);
+					}
+					cword |= duword;
+				}  // for(idu)
+				// now iterate through 1-bits in the word
+				for(int ibit = 0; ibit < sizeof(cword) * 8; ibit++)
+					if((cword >> ibit) & 1u)
+						cluster.push_back(iword * (int)sizeof(cword) * 8 + ibit);
+			}  // for(iword)
+		} else {
+			for(int i = 0; i < n; i++) {
+				for(int idu = 0; idu < du_cluster.size(); idu++) {
+					if(du_cluster[idu]->contains_point(ps, n, d, i, dense_ws)) {
+						cluster.push_back(i);
+						break;
+					}					
+				}  // for(idu)
+			}  // for(i(point)) 
+		}  // if(use_bitmaps())
 	}  // for(iclu)
 }  // build_clusters
 

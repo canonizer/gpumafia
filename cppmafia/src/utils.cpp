@@ -13,7 +13,6 @@
 
 void *bulk_alloc(size_t n) {
 #ifdef MAFIA_USE_DEVICE
-	//#ifdef XXX_YYY
 	if(Options::options().use_device()) {
 		void *ptr;
 		CHECK(cudaMallocHost(&ptr, n));
@@ -21,14 +20,13 @@ void *bulk_alloc(size_t n) {
 	} else
 #endif
 			return malloc(n);
-}
+}  // bulk_alloc
 
 void bulk_free(void *ptr) {
 #ifdef MAFIA_USE_DEVICE
-	//#ifdef XXX_YYY
 	if(Options::options().use_device())
 		cudaFreeHost(ptr);
 	else
 #endif
 		free(ptr);
-}
+}  // bulk_free

@@ -3,9 +3,6 @@
 
 /** @file utils.h some utility functions and definitions */
 
-/** compiled with device support */ 
-#define MAFIA_USE_DEVICE
-
 #include <stdlib.h>
 
 /** a macro to check whether CUDA calls are successful */

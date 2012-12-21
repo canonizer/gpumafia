@@ -16,7 +16,10 @@ enum {
 	/** whether to output timing information to stdout */
 	OptionTiming = 0x8,
 	/** whether to do processing on device, i.e. GPU */
-	OptionUseDevice = 0x10	
+	OptionUseDevice = 0x10,
+	/** whether to output the point data, not just indices (this does
+			significantly more I/O, so is not done automatically) */
+	OptionOutputPoints = 0x20
 };
 
 /** options for MAFIA algorithm and program */
@@ -65,6 +68,8 @@ public:
 	inline static const Options &options() { return *opts; }
 	/** checks whether the options indicate that device must be used */
 	inline bool use_device() const { return flags & OptionUseDevice; }
+	/** check whether to output point data */
+	inline bool output_points() const { return flags & OptionOutputPoints; }
 
 };  // struct Options
 

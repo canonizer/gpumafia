@@ -1,6 +1,7 @@
 /** @file options.cpp implementations of parsing options */
 
 #include "options.h"
+#include "utils.h"
 
 #include <assert.h>
 #include <getopt.h>
@@ -16,12 +17,13 @@ static struct option long_opts[] = {
 	{"bins", required_argument, 0, 'n'},
 	{"min-wins", required_argument, 0, 'u'},
 	{"max-wins", required_argument, 0, 'M'},
-	{"no-set-dedup", no_argument, 0, 'd'},
-	{"no-bitmap", no_argument, 0, 'p'}, 
-	{"no-bitmaps", no_argument, 0, 'p'}, 
-	{"verbose", no_argument, 0, 'v'},
+	{"no-set-dedup", no_argument, 0, 'D'},
+	{"no-bitmap", no_argument, 0, 'P'}, 
+	{"no-bitmaps", no_argument, 0, 'P'}, 
+	{"verbose", no_argument, 0, 'V'},
 	{"timing", no_argument, 0, 't'},
-	{"device", no_argument, 0, 'g'},
+	{"device", no_argument, 0, 'D'},
+	{"output-points", no_argument, 0, 'p'},
 	{"help", no_argument, 0, 'h'},
 	{0, 0, 0, 0}
 };
@@ -35,7 +37,8 @@ Options::Options(int argc, char **argv)
 	int cur_opt = 0;
 	optind = 1;
 	int opt_ind = -1;
-	while((cur_opt = getopt_long(argc, argv, ":a:b:n:u:M:vh", long_opts, &opt_ind)) > 0) {
+	while((cur_opt = getopt_long
+				 (argc, argv, ":a:b:n:u:M:vhdp", long_opts, &opt_ind)) > 0) {
 		switch(cur_opt) {
 		case 'a':
 			// alpha argument
@@ -57,17 +60,28 @@ Options::Options(int argc, char **argv)
 			// maximum number of windows
 			parse_int("max-wins", &max_nwindows, 1);
 			break;
-		case 'd':
+		case 'D':
 			// disable set deduplication
 			flags &= ~OptionSetDedup;
 			break;
 		case 'p':
+			// whether to output points
+			flags |= OptionOutputPoints;
+			break;
+		case 'P':
 			// disable bitmaps during point counting
 			flags &= ~OptionUseBitmaps;
 			break;
-		case 'g':
+		case 'd':
 			// use a GPU
 			flags |= OptionUseDevice;
+#ifndef MAFIA_USE_DEVICE
+			// this option is an error if the program was not compiled for device
+			// support 
+			fprintf(stderr, "-d: option not supported, cppmafia was compiled "
+							"without device (GPU) support\n");
+			print_usage(-1);
+#endif
 			break;
 		case 'v':
 			// verbosity
@@ -142,10 +156,31 @@ void Options::parse_int(const char *opt, int *pval, int min_val) {
 } // parse_double
 
 void Options::print_usage(int exit_code) {
-	fprintf(stderr, "usage:\n");
-	fprintf(stderr, "cppmafia --help\n");
-	fprintf(stderr, "cppmafia [--alpha alpha] [--beta beta] [--bins nbins] "
-					"[--min-wins uniform-windows] [--max-wins max-windows] file\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "usage: cppmafia [options] input-file\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "options (GNU option syntax):\n");
+	fprintf(stderr, "\t-a,--alpha alpha - dense threshold (alpha)\n");
+	fprintf(stderr, "\t-b,--beta beta - window merge threshold (alpha)\n");
+	fprintf(stderr, "\t-n,--bins nbins - minimum number of bins\n");
+	fprintf(stderr, "\t-u,--min-wins nwins - number of windows for uniform " 
+					"dimensions\n");
+	fprintf(stderr, "\t-M,--max-wins nwins - maximum number of windows for " 
+					"a dimension\n");
+	fprintf(stderr, "\t-h,--help - print this message and exit\n");
+	fprintf(stderr, "\t-V,--verbose - print intermediate data as the algorithm " 
+					"runs\n");
+#ifdef MAFIA_USE_DEVICE
+	fprintf(stderr, "\t-d,--device - offload some work to device, i.e. GPU\n");
+#endif
+	fprintf(stderr, "\t-p,--output-points - output cluster points in "
+					"addition to indices \n");
+	fprintf(stderr, "\t--no-set-dedup - turns off set deduplication; can degrade "
+					"speed\n");
+	fprintf(stderr, "\t--no-bitmap,--no-bitmaps - disables point counting with "
+					"bitmaps;\n\t\tcan degrade speed extremely, and does not work on " 
+					"devices\n");
+	fprintf(stderr, "\t--timing - prints out additional timing info\n");
 	exit(exit_code);
 }  // print_usage
 

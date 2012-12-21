@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "bitmap.h"
 #include "cdu.h"
 #include "utils.h"
 #include "window.h"
