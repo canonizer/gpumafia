@@ -10,18 +10,24 @@
 #include <stdlib.h>
 #include <time.h>
 
+/** cluster type (box or sphere) */
+enum {BOX, SPHERE};
 /** the total number of points */
 int n = 50000;
 /** the dimensionality of the dataset */
 int d = 4;
 /** the dimensionality of the cluster */
 int k = 2;
+/** the type of the cluster */
+int ct = BOX;
+/** cluster dimension numbers */
+int *cluster_dims;
 /** the fraction of points belonging to the cluster(s) */
 double cf = 0.9;
 /** the extents of the region to which the points belong */
 double pmin = 0, pmax = 100;
 /** the extent of the cluster */
-double cmin = 42, cmax = 58;
+double cmin = 42, cmax = 58, cmid, crad;
 /** the name of the output file */
 char *out_path = "./my-cluster.dat";
 
@@ -40,20 +46,35 @@ void print_usage(int exit_code);
 /** parse command line options and fill in the global variables */
 void parse_cmdline(int argc, char **argv);
 
+/** fill in cluster dimension numbers */
+void fill_cluster_dims(void);
+
 /** randomizes the random generator with the timer */
-void time_randomize();
+void time_randomize(void);
+
+/** generate point (cluster components) in a box 
+		@param i point number
+*/
+void generate_box_point(int i);
+
+/** geenerate point (cluster components) in a sphere 
+		@param i point number
+ */
+void generate_sphere_point(int i);
 
 /** generate the dataset */
-void generate_points();
+void generate_points(void);
 
 /** write the dataset to the output file */
-void write_file();
+void write_file(void);
 
 int main(int argc, char **argv) {
 	//fprintf(stderr, "the program started\n");
 	parse_cmdline(argc, argv);
+	fill_cluster_dims();
 	//fprintf(stderr, "parsed cmdline\n");
 	time_randomize();
+	fill_cluster_dims();
 	//fprintf(stderr, "randomized timer\n");
 	generate_points();
 	//fprintf(stderr, "generated points\n");
@@ -87,11 +108,14 @@ int parse_int(const char *name, int min_val) {
 }  // parse_int
 
 void parse_cmdline(int argc, char **argv) {
-	const char *optstr = "n:d:k:h:";
+	const char *optstr = "sn:d:k:h:";
 	int cur_opt;
 	optind = 1;
 	while((cur_opt = getopt(argc, argv, optstr)) > 0) {
 		switch(cur_opt) {
+		case 's':
+			ct = SPHERE;
+			break;
 		case 'n':
 			n = parse_int("n", 1);
 			break;
@@ -121,26 +145,67 @@ void parse_cmdline(int argc, char **argv) {
 	// set the output file name
 	if(optind < argc)
 		out_path = argv[optind];
+
+	// initialize some dependent parameters
+	cmid = (cmax + cmin) / 2;
+	crad = (cmax - cmin) / 2;
 	
 }  // parse_cmdline
 
-void time_randomize() {
+void time_randomize(void) {
 	srandom((unsigned int)time(0));
 }  // time_randomize
 
-void generate_points() {
+void fill_cluster_dims(void) {
+	cluster_dims = (int*)malloc(sizeof(*cluster_dims) * k);
+	for(int idim = 0; idim < k; idim++)
+		cluster_dims[idim] = idim;
+}  // fill_cluster_dims
+
+void generate_box_point(int i) {
+	for(int iidim = 0; iidim < k; iidim++) {
+		int idim = cluster_dims[iidim];
+		ps[i * d + idim] = drandom(cmin, cmax);
+	}
+}  // generate_box_point
+
+void generate_sphere_point(int i) {
+	// just generate point inside a box until it falls inside the cluster
+	double dist2;
+	do {
+		generate_box_point(i);
+		dist2 = 0;
+		for(int iidim = 0; iidim < k; iidim++) {
+			int idim = cluster_dims[iidim];
+			double dcoord = ps[i * d + idim] - cmid;
+			dist2 += dcoord * dcoord;
+		}
+	} while(dist2 > crad * crad);
+}  // generate_sphere_point
+
+void generate_points(void) {
 	ps = (double *)malloc(sizeof(*ps) * n * d);
 	for(int i = 0; i < n; i++) {
 		int in_cluster = drandom(0, 1) < cf;
-		for(int idim = 0; idim < d; idim++) {
-			// TODO: select cluster dimensions randomly
-			if(in_cluster && idim < k) {
-				// generate point inside the cluster
-				ps[i * d + idim] = drandom(cmin, cmax);
-			} else {
-				// generate a random point inside the region
-				ps[i * d + idim] = drandom(pmin, pmax);
+		int idim_start = 0;
+		if(in_cluster) {
+			// fill in first k dimensions for cluster
+			switch(ct) {
+			case BOX:
+				generate_box_point(i);
+				break;
+			case SPHERE:
+				generate_sphere_point(i);
+				break;
+			default:
+				assert(0);
+				break;
 			}
+			idim_start = k;
+		} 
+		
+		for(int idim = idim_start; idim < d; idim++) {
+			ps[i * d + idim] = drandom(pmin, pmax);
 		}
 	}  // for(each point)
 }  // generate_points

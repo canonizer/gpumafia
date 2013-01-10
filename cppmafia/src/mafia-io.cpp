@@ -36,7 +36,7 @@ template<class T> void read_points
       buf_ptr = next_buf_ptr;
       cur_ndims++;
       vpoints.push_back(coord);
-    }
+		}
     if(cur_ndims) {
       ++*npoints;
       // non-empty line
@@ -63,19 +63,21 @@ template<class T> void read_points
 	int n = *npoints, d = *ndims;
   *points = (T*)bulk_alloc(sizeof(**points) * *ndims * *npoints);
 	T *ps = *points;
+
   //for(size_t icoord = 0; icoord < *ndims * *npoints; icoord++)
   //  (*points)[icoord] = vpoints[icoord];
 	for(int i = 0; i < n; i++)
 		for(int idim = 0; idim < d; idim++)
 			PS(i, idim) = vpoints[i * d + idim];
 
-  // close the file
+  // deallocate the buffer, close file
   fclose(file);
 }  // read_points
 
 template<class T> void write_clusters
-(const char* path, T* points, int npoints, int ndims, 
+(const char* path, T* ps, int npoints, int ndims, 
  const vector<vector<int> > &cluster_idxs) {
+	int n = npoints, d = ndims;
 	// global options
 	const Options &opts = Options::options();
   // number length
@@ -104,10 +106,9 @@ template<class T> void write_clusters
     const vector<int> & cluster = cluster_idxs[icluster];
     for(int ipidx = 0; ipidx < cluster.size(); ipidx++) {
       int pidx = cluster[ipidx];
-      T *point = points + pidx * ndims;
 			if(opts.output_points()) {
 				for(int idim = 0; idim < ndims; idim++) {
-					fprintf(dat_file, "%.9lf", (double)point[idim]);
+					fprintf(dat_file, "%.9lf", (double)PS(pidx, idim));
 					if(idim < ndims - 1)
 						fprintf(dat_file, "\t");
 				}  // for each point coordinate

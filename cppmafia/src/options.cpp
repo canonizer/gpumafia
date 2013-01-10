@@ -38,7 +38,7 @@ Options::Options(int argc, char **argv)
 	optind = 1;
 	int opt_ind = -1;
 	while((cur_opt = getopt_long
-				 (argc, argv, ":a:b:n:u:M:vhdp", long_opts, &opt_ind)) > 0) {
+				 (argc, argv, ":a:b:n:u:M:Vhdp", long_opts, &opt_ind)) > 0) {
 		switch(cur_opt) {
 		case 'a':
 			// alpha argument
@@ -59,6 +59,10 @@ Options::Options(int argc, char **argv)
 		case 'M':
 			// maximum number of windows
 			parse_int("max-wins", &max_nwindows, 1);
+			break;
+		case 'V':
+			// verbosity
+			flags |= OptionVerbose;
 			break;
 		case 'D':
 			// disable set deduplication
@@ -82,10 +86,6 @@ Options::Options(int argc, char **argv)
 							"without device (GPU) support\n");
 			print_usage(-1);
 #endif
-			break;
-		case 'v':
-			// verbosity
-			flags |= OptionVerbose;
 			break;
 		case 't':
 			// timing information
