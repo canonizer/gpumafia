@@ -77,7 +77,7 @@ class Cdu : public ref_object {
 	/** checks whether this DU shares a face with another one; 
 			@notes it returns false if two DUs are the same
 	 */
-	bool has_common_face_with(const Cdu &cdu2) const;
+	bool has_common_face_with(const Cdu &cdu2, const vector<Window> &ws) const;
   /** the coordinates of the dense unit, sorted by ascending dimension
       number */
   vector<dimpair_t> coords;

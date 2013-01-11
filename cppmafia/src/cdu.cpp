@@ -202,7 +202,8 @@ bool Cdu::is_dense(const vector<Window> &ws) const {
 	return true;
 }  // is_dense
 
-bool Cdu::has_common_face_with(const Cdu &cdu2) const {
+bool Cdu::has_common_face_with(const Cdu &cdu2, const vector<Window> &ws) 
+	const {
 	// for a common face, dimensions must be the same, 
 	// and the difference in window numbers exactly 1
 	int n = coords.size();
@@ -213,7 +214,7 @@ bool Cdu::has_common_face_with(const Cdu &cdu2) const {
 		dimpair_t dp1 = coords[icoord], dp2 = cdu2.coords[icoord];
 		if(dp1.dim != dp2.dim)
 			return false;
-		sum += abs(dp1.win - dp2.win);
+		sum += abs(ws[dp1.win].iwin - ws[dp2.win].iwin);
 	}
 	return sum == 1;
 }  // has_common_face_with()

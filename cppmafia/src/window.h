@@ -27,6 +27,9 @@ struct Window {
 	
 	/** the dimension to which the window belongs */
 	int idim;
+	/** the number of this window inside the dimension; this is the data that will
+	be output, and it is usually set externally */
+	int iwin;
   /** the window width, i.e. the number of bins in the window */
   int width;
   /** the window left bound, i.e. the start of the window */

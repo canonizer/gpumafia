@@ -62,21 +62,21 @@ vector<vector<int> > MafiaSolver<T>::find_clusters() {
 		start_phase(PhaseFindCdus);
 		find_cdus();
 		if(is_verbose()) {
-		 	printf("CDUs: ");
-		 	print_dus(cdus);
+		 	//printf("CDUs: ");
+		 	//print_dus(cdus);
 		}
 		if(cur_dim > 0) {
 			dedup_cdus();
 			if(is_verbose()) {
-			 	printf("dedupped CDUs: ");
-			 	print_dus(cdus);
+			 	//printf("dedupped CDUs: ");
+			 	//print_dus(cdus);
 			}
 		}
 		start_phase(PhaseFindDense);
 		find_dense_cdus();
 		if(is_verbose()) {
-			printf("found DUs: ");
-		 	print_dus(new_dus);
+			//printf("found DUs: ");
+		 	//print_dus(new_dus);
 		}
 		if(cur_dim > 0) {
 			start_phase(PhaseFindUnjoined);
@@ -278,10 +278,12 @@ void MafiaSolver<T>::build_windows() {
 				build_uniform_windows(idim, min_nwindows, dim_windows);
       }
 
-      // compute thresholds
+      // compute thresholds, also set window numbers
       int nbins = nbinss[idim];
-      for(int iwin = 0; iwin < dim_windows.size(); iwin++) 
+      for(int iwin = 0; iwin < dim_windows.size(); iwin++) {
 				dim_windows[iwin].compute_threshold(alpha, n, nbins);
+				dim_windows[iwin].iwin = iwin;
+			}
 
     } else {
       // no spread in dimension, just ignore
@@ -426,7 +428,7 @@ void MafiaSolver<T>::build_du_graph() {
 			Cdu* pdu1 = dus[idu1];
 			for(int idu2 = idu1 + 1; idu2 < dus.size(); idu2++) {
 				Cdu* pdu2 = dus[idu2];
-				if(pdu1->has_common_face_with(*pdu2)) {
+				if(pdu1->has_common_face_with(*pdu2, dense_ws)) {
 					// add an edge in both directions
 					pdu1->neighbours.push_back(pdu2);
 					pdu2->neighbours.push_back(pdu1);
@@ -569,7 +571,7 @@ void MafiaSolver<T>::print_dus(vector<ref<Cdu> > &dus) {
 		Cdu &du = *dus[idu];
 		printf("[");
 		for(int idp = 0; idp < du.coords.size(); idp++) {
-			printf("%d:%d", du.coords[idp].dim, du.coords[idp].win);
+			printf("%d:%d", du.coords[idp].dim, dense_ws[du.coords[idp].win].iwin);
 			if(idp < du.coords.size() - 1)
 				printf(" ");
 		}

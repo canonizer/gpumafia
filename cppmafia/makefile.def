@@ -1,6 +1,7 @@
 # the compiler; g++ and icc are also supported; however, device support is
 # available with nvcc only
 CXX=nvcc
+#CXX=g++
 
 # where to install the program
 PREFIX=/usr

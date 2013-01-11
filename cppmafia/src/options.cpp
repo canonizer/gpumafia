@@ -32,7 +32,7 @@ static struct option long_opts[] = {
 Options *Options::opts = 0;
 
 Options::Options(int argc, char **argv) 
-	: in_path(0), out_path(0), min_nbins(1000), min_nwindows(5), max_nwindows(20),
+	: in_path(0), out_path(0), min_nbins(200), min_nwindows(5), max_nwindows(20),
 		alpha(1.5), beta(0.25), flags(OptionSetDedup | OptionUseBitmaps) {
 	int cur_opt = 0;
 	optind = 1;
@@ -118,8 +118,9 @@ Options::Options(int argc, char **argv)
 		fprintf(stderr, "file with data for clustering expected\n");
 		print_usage(-1);
 	}
-	in_path = (char *)malloc(strlen(argv[optind] + 1) * sizeof(char));
+	in_path = (char *)malloc((strlen(argv[optind]) + 1) * sizeof(char));
 	strcpy(in_path, argv[optind]);
+	fprintf(stderr, "%s\n", in_path);
 	
 	// form the base output path; do this by removing the extension from the input
 	// file name
