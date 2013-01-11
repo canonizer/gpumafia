@@ -120,7 +120,6 @@ Options::Options(int argc, char **argv)
 	}
 	in_path = (char *)malloc((strlen(argv[optind]) + 1) * sizeof(char));
 	strcpy(in_path, argv[optind]);
-	fprintf(stderr, "%s\n", in_path);
 	
 	// form the base output path; do this by removing the extension from the input
 	// file name

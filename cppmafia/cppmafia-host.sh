@@ -15,4 +15,4 @@ cd $PBS_O_WORKDIR
 echo "workdir: $PBS_O_WORKDIR"
 NSLOTS=1
 echo "running on $NSLOTS cpus ..."
-mpiexec -np $NSLOTS ./bin/cppmafia -n100 --timing ~/try/mafia/cluster-7-host.dat
+mpiexec -np $NSLOTS ./bin/cppmafia --timing ~/try/mafia/cluster.dat
