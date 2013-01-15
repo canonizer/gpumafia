@@ -571,7 +571,9 @@ void MafiaSolver<T>::print_dus(vector<ref<Cdu> > &dus) {
 		Cdu &du = *dus[idu];
 		printf("[");
 		for(int idp = 0; idp < du.coords.size(); idp++) {
-			printf("%d:%d", du.coords[idp].dim, dense_ws[du.coords[idp].win].iwin);
+			printf("%d:%.2lf..%.2lf", du.coords[idp].dim, 
+						 dense_ws[du.coords[idp].win].pleft, 
+						 dense_ws[du.coords[idp].win].pright);
 			if(idp < du.coords.size() - 1)
 				printf(" ");
 		}

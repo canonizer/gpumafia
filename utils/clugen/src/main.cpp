@@ -4,41 +4,27 @@
 		<output-file> 
  */
 
+#include "cluster.h"
+#include "gen-context.h"
+
+#include <algorithm>
 #include <assert.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-/** cluster type (box or sphere) */
-enum {BOX, SPHERE};
-/** the total number of points */
-int n = 50000;
-/** the dimensionality of the dataset */
-int d = 4;
-/** the dimensionality of the cluster */
-int k = 2;
-/** the type of the cluster */
-int ct = BOX;
-/** cluster dimension numbers */
-int *cluster_dims;
-/** the fraction of points belonging to the cluster(s) */
-double cf = 0.9;
-/** the extents of the region to which the points belong */
-double pmin = 0, pmax = 100;
-/** the extent of the cluster */
-double cmin = 42, cmax = 58, cmid, crad;
-/** the name of the output file */
+using namespace std;
+
 const char *out_path = "./my-cluster.dat";
 
-/** the points*/
-double *ps = 0;
-
-/** generate a random double value within the specific range */
-double drandom(double a, double b);
+GenContext *gc = 0;
 
 /** parses an integer >= specific integer value (inclusive) */
 int parse_int(const char *name, int min_val);
+
+/** parses a double in the specific interval (inclusive) */
+double parse_double(const char *name, double min_val, double max_val);
 
 /** prints the usage of the program and exits */
 void print_usage(int exit_code);
@@ -52,45 +38,46 @@ void fill_cluster_dims(void);
 /** randomizes the random generator with the timer */
 void time_randomize(void);
 
-/** generate point (cluster components) in a box 
-		@param i point number
-*/
-void generate_box_point(int i);
-
-/** geenerate point (cluster components) in a sphere 
-		@param i point number
- */
-void generate_sphere_point(int i);
-
 /** generate the dataset */
 void generate_points(void);
 
 /** write the dataset to the output file */
-void write_file(void);
+void write_file(const double *ps, int n, int d);
 
 int main(int argc, char **argv) {
 	//fprintf(stderr, "the program started\n");
+	gc = new GenContext();
 	parse_cmdline(argc, argv);
-	fill_cluster_dims();
 	//fprintf(stderr, "parsed cmdline\n");
 	time_randomize();
-	fill_cluster_dims();
+	gc->generate_template();
+	double *ps = gc->generate_points();
 	//fprintf(stderr, "randomized timer\n");
-	generate_points();
-	//fprintf(stderr, "generated points\n");
-	write_file();
+	write_file(ps, gc->n, gc->d);
+	gc->print_info();
 	//fprintf(stderr, "written to file\n");
+	delete[] ps;
 }  // main
 
-double drandom(double a, double b) {
-	return a + (b - a) * ((double)random() / RAND_MAX);
-}  // drandom
-
 void print_usage(int exit_code) {
-	fprintf(stderr, "usage:\n");
-	fprintf(stderr, "\tclugen [-n<npoints>] [-d<ndims>] [-k<cluster_ndims>] " 
-					"[<outfile>]\n");
-	fprintf(stderr, "\tclugen -h\n");
+	fprintf(stderr, "usage: clugen [options] [outfile]\n");
+	fprintf(stderr, "options:\n");
+	fprintf(stderr, "  %-20s %s\n", "-n <npoints>", 
+					"number of points to generate (default 20000)");
+	fprintf(stderr, "  %-20s %s\n", "-d <ndims>", 
+					"point dimensionality (default 2)");
+	fprintf(stderr, "  %-20s %s\n", "-k <max_clu_dims>", 
+					"maximum cluster dimensionality (default 2)");
+	fprintf(stderr, "  %-20s %s\n", "-m <nclusters>",
+					"number of clusters (default 1)");
+	fprintf(stderr, "  %-20s %s\n", "-f <fraction>", 
+					"fraction of points which belong to the clusters (default 0.9)");
+	fprintf(stderr, "  %-20s %s\n", "-s", 
+					"generate ball clusters, not boxes");
+	fprintf(stderr, "  %-20s %s\n", "-l", 
+					"also generate clusters of lesser dimensionality than "
+					"the maximum");
+	fprintf(stderr, "  %-20s %s\n", "-h", "print this message and exit\n");
 	exit(exit_code);
 }  // print_usage
 
@@ -107,23 +94,47 @@ int parse_int(const char *name, int min_val) {
 	return val;
 }  // parse_int
 
+double parse_double(const char *name, double min_val, double max_val) {
+	double val;
+	if(!sscanf(optarg, "%lf", &val)) {
+		// can't parse double
+		fprintf(stderr, "expected double for argument %s\n", name);
+		print_usage(-1);
+	} else if(val < min_val || val > max_val) {
+		fprintf(stderr, "value for %s must be between %lf and %lf, "
+						"both ends inclusive", name, min_val, max_val);
+		print_usage(-1);
+	}
+	return val;
+}  // parse_double
+
 void parse_cmdline(int argc, char **argv) {
-	const char *optstr = "sn:d:k:h:";
+	const char *optstr = "shln:d:k:m:f:";
 	int cur_opt;
 	optind = 1;
+	bool kmin_is_kmax = true;
 	while((cur_opt = getopt(argc, argv, optstr)) > 0) {
 		switch(cur_opt) {
 		case 's':
-			ct = SPHERE;
+			gc->ct = SPHERE;
+			break;
+		case 'l':
+			kmin_is_kmax = false;
 			break;
 		case 'n':
-			n = parse_int("n", 1);
+			gc->n = parse_int("n", 1);
 			break;
 		case 'd':
-			d = parse_int("d", 1);
+			gc->d = parse_int("d", 1);
 			break;
 		case 'k':
-			k = parse_int("k", 1);
+			gc->kmax = parse_int("k", 2);
+			break;
+		case 'm':
+			gc->m = parse_int("m", 1);
+			break;
+		case 'f':
+			gc->cf = parse_double("f", 0, 1);
 			break;
 		case 'h':
 			print_usage(0);
@@ -141,76 +152,25 @@ void parse_cmdline(int argc, char **argv) {
 			break;
 		}  // switch(cur_opt)
 	}  // while(cur_opt > 0)
+	
+
+	// clamp kmax to d
+	gc->kmax = min(gc->kmax, gc->d);
+
+	// set kmin
+	if(kmin_is_kmax)
+		gc->kmin = gc->kmax;
 
 	// set the output file name
 	if(optind < argc)
 		out_path = argv[optind];
-
-	// initialize some dependent parameters
-	cmid = (cmax + cmin) / 2;
-	crad = (cmax - cmin) / 2;
-	
 }  // parse_cmdline
 
 void time_randomize(void) {
 	srandom((unsigned int)time(0));
 }  // time_randomize
 
-void fill_cluster_dims(void) {
-	cluster_dims = (int*)malloc(sizeof(*cluster_dims) * k);
-	for(int idim = 0; idim < k; idim++)
-		cluster_dims[idim] = idim;
-}  // fill_cluster_dims
-
-void generate_box_point(int i) {
-	for(int iidim = 0; iidim < k; iidim++) {
-		int idim = cluster_dims[iidim];
-		ps[i * d + idim] = drandom(cmin, cmax);
-	}
-}  // generate_box_point
-
-void generate_sphere_point(int i) {
-	// just generate point inside a box until it falls inside the cluster
-	double dist2;
-	do {
-		generate_box_point(i);
-		dist2 = 0;
-		for(int iidim = 0; iidim < k; iidim++) {
-			int idim = cluster_dims[iidim];
-			double dcoord = ps[i * d + idim] - cmid;
-			dist2 += dcoord * dcoord;
-		}
-	} while(dist2 > crad * crad);
-}  // generate_sphere_point
-
-void generate_points(void) {
-	ps = (double *)malloc(sizeof(*ps) * n * d);
-	for(int i = 0; i < n; i++) {
-		int in_cluster = drandom(0, 1) < cf;
-		int idim_start = 0;
-		if(in_cluster) {
-			// fill in first k dimensions for cluster
-			switch(ct) {
-			case BOX:
-				generate_box_point(i);
-				break;
-			case SPHERE:
-				generate_sphere_point(i);
-				break;
-			default:
-				assert(0);
-				break;
-			}
-			idim_start = k;
-		} 
-		
-		for(int idim = idim_start; idim < d; idim++) {
-			ps[i * d + idim] = drandom(pmin, pmax);
-		}
-	}  // for(each point)
-}  // generate_points
-
-void write_file() {
+void write_file(const double *ps, int n, int d) {
 	FILE *file = fopen(out_path, "w");
 	if(!file) {
 		fprintf(stderr, "cannot open file %s for writing", out_path);

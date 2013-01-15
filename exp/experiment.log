@@ -115,3 +115,15 @@ to do a commit, then do host vs. GPU measurements, and send the report.
 1) Moved point counting to GPUs. This gave 5-50x improvement to point counting
 phase (depending on the number of points, more points meanes more improvement),
 and overall 5-10x improvement to the time spent in computational phase. 
+
+15.01.2013
+
+1) Now generating multiple clusters, mainly box clusters. Detection quality of
+MAFIA algorithm is not so good as with a single cluster. The particularly
+complicated cases are those in which clusters intersect in some dimensions. In
+this case, detection goes wroing even in the simplest 2D case with 5 clusters:
+MAFIA reports only single-dimensional clusters. With 3-4 clusters in 2D case,
+the situation can be fixed with more bins and windows (-n400 -M100), but this
+does not always help. For higher dimensions, the detection rate in case of
+multiple clusters (4 2d clusters) is even lower: everything is detected in 1
+dimension only, and is for some reason not merged into 2d. 
