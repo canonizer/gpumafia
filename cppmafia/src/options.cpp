@@ -5,6 +5,7 @@
 
 #include <assert.h>
 #include <getopt.h>
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +25,8 @@ static struct option long_opts[] = {
 	{"timing", no_argument, 0, 't'},
 	{"device", no_argument, 0, 'D'},
 	{"output-points", no_argument, 0, 'p'},
+	{"seq", no_argument, 0, 'S'},
+	{"sequential", no_argument, 0, 'S'},
 	{"help", no_argument, 0, 'h'},
 	{0, 0, 0, 0}
 };
@@ -32,7 +35,7 @@ static struct option long_opts[] = {
 Options *Options::opts = 0;
 
 Options::Options(int argc, char **argv) 
-	: in_path(0), out_path(0), min_nbins(200), min_nwindows(5), max_nwindows(20),
+	: in_path(0), out_path(0), min_nbins(1000), min_nwindows(5), max_nwindows(100),
 		alpha(1.5), beta(0.25), flags(OptionSetDedup | OptionUseBitmaps) {
 	int cur_opt = 0;
 	optind = 1;
@@ -75,6 +78,10 @@ Options::Options(int argc, char **argv)
 		case 'P':
 			// disable bitmaps during point counting
 			flags &= ~OptionUseBitmaps;
+			break;
+		case 'S':
+			// disables computing in parallel on CPU
+			flags |= OptionSequential;
 			break;
 		case 'd':
 			// use a GPU
@@ -128,6 +135,10 @@ Options::Options(int argc, char **argv)
 	out_path = (char *)malloc((base_len + 1) * sizeof(char));
 	memset(out_path, 0, base_len + 1);
 	strncpy(out_path, in_path, base_len);
+
+	// set the number of OpenMP threads to 1 to force sequential computation
+	if(flags & OptionSequential)
+		omp_set_num_threads(1);
 	
 } // Options
 
@@ -177,6 +188,8 @@ void Options::print_usage(int exit_code) {
 					"addition to indices \n");
 	fprintf(stderr, "\t--no-set-dedup - turns off set deduplication; can degrade "
 					"speed\n");
+	fprintf(stderr, "\t--seq[ential] - forces sequential computation on "
+					"CPU side\n");
 	fprintf(stderr, "\t--no-bitmap,--no-bitmaps - disables point counting with "
 					"bitmaps;\n\t\tcan degrade speed extremely, and does not work on " 
 					"devices\n");

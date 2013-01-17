@@ -93,6 +93,7 @@ vector<vector<int> > MafiaSolver<T>::find_clusters() {
 	start_phase(PhaseBuildGraph);
 	build_du_graph();
 	build_du_clusters();
+	print_clusters();
 	start_phase(PhaseBuildClusters);
 	// build clusters as index lists
 	build_clusters();
@@ -156,6 +157,7 @@ void MafiaSolver<T>::build_histos() {
 	}
   
 	// compute the point histograms
+#pragma omp parallel for if(!use_device())
   for(int idim = 0; idim < d; idim++) {
 #ifdef MAFIA_USE_DEVICE
 		if(use_device())
@@ -163,18 +165,21 @@ void MafiaSolver<T>::build_histos() {
 		else
 #endif
 			compute_histo_host(idim);
-  } 
+  }
 }  // build_histos
 
 template<class T>
 void MafiaSolver<T>::compute_limits_host() {
+#pragma omp parallel for
  for(int idim = 0; idim < d; idim++) {
-    pmins[idim] = numeric_limits<T>::infinity(); 
-    pmaxs[idim] = -numeric_limits<T>::infinity();
+    T pmin = numeric_limits<T>::infinity(); 
+    T pmax = -numeric_limits<T>::infinity();
     for(int i = 0; i < n; i++) {
-      pmins[idim] = min(pmins[idim], PS(i, idim));
-      pmaxs[idim] = max(pmaxs[idim], PS(i, idim));
+      pmin = min(pmin, PS(i, idim));
+      pmax = max(pmax, PS(i, idim));
     }
+		pmins[idim] = pmin;
+		pmaxs[idim] = pmax;
   }  // for(idim)
 }  // compute_limits_host
 
@@ -185,10 +190,24 @@ void MafiaSolver<T>::compute_histo_host(int idim) {
 	int nbins = nbinss[idim];
 	T bin_iwidth = nbins / (pmaxs[idim] - pmins[idim]);
 	int *histo = histos[idim];
-	for(int i = 0; i < n; i++) {
-		int ibin = (int)floor((PS(i, idim) - pmins[idim]) * bin_iwidth);
-		ibin = min(max(ibin, 0), nbins - 1);
-		histo[ibin]++;
+	#pragma omp parallel
+	{
+
+		// phase 1: compute private histograms
+		int *priv_histo = (int*)malloc(sizeof(int) * nbins);
+		memset(priv_histo, 0, sizeof(int) * nbins);
+		#pragma omp for
+		for(int i = 0; i < n; i++) {
+			int ibin = (int)floor((PS(i, idim) - pmins[idim]) * bin_iwidth);
+			ibin = min(max(ibin, 0), nbins - 1);
+			priv_histo[ibin]++;
+		}
+
+		// phase 2: build the global histogram
+		#pragma omp critical
+		for(int ibin = 0; ibin < nbins; ibin++)
+			histo[ibin] += priv_histo[ibin];
+		free(priv_histo);
 	}
 }  // compute_histo_host
 
@@ -223,6 +242,8 @@ void MafiaSolver<T>::build_bitmaps() {
 	if(use_device())
 		alloc_bitmaps_dev();
 #endif
+
+  #pragma omp parallel for
 	for(int iwin = 0; iwin < nwindows; iwin++) {
 #ifdef MAFIA_USE_DEVICE
 		if(use_device())
@@ -239,11 +260,17 @@ void MafiaSolver<T>::compute_bitmap_host(int iwin) {
 	// dimension)
 	Window &w = dense_ws[iwin];
 	int idim = w.idim;
-	for(int i = 0; i < n; i++) {
-		int iword = i / (sizeof(*bmps) * 8);
-		int ibit = i % (sizeof(*bmps) * 8);
-		unsigned bit = w.pleft <= PS(i, idim) && PS(i, idim) < w.pright ? 1u : 0u;
-		BMPS(iwin, iword) |= bit << ibit;
+
+	#pragma omp parallel for
+	for(int iword = 0; iword < nwords; iword++) {
+		int istart = iword * sizeof(*bmps) * 8;
+		int iend = min((int)(istart + sizeof(*bmps) * 8), n);
+		unsigned word = 0u;
+		for(int i = istart; i < iend; i++) {
+			unsigned bit = w.pleft <= PS(i, idim) && PS(i, idim) < w.pright ? 1u : 0u;
+			word |= bit << (i - istart);
+		}
+		BMPS(iwin, iword) = word;
 	}
 }  // compute_bitmap_host()
 
@@ -383,6 +410,7 @@ void MafiaSolver<T>::find_dense_cdus() {
 
 template<class T>
 void MafiaSolver<T>::count_points_host() {
+#pragma omp parallel for
 	for(int icdu = 0; icdu < cdus.size(); icdu++) {
 		Cdu &cdu = *cdus[icdu];
 		if(use_bitmaps())
@@ -567,20 +595,39 @@ void MafiaSolver<T>::print_terminal_dus() {
 template<class T>
 void MafiaSolver<T>::print_dus(vector<ref<Cdu> > &dus) {
 	printf("[ ");	
-	for(int idu = 0; idu < dus.size(); idu++) {
-		Cdu &du = *dus[idu];
-		printf("[");
-		for(int idp = 0; idp < du.coords.size(); idp++) {
-			printf("%d:%.2lf..%.2lf", du.coords[idp].dim, 
-						 dense_ws[du.coords[idp].win].pleft, 
-						 dense_ws[du.coords[idp].win].pright);
-			if(idp < du.coords.size() - 1)
-				printf(" ");
-		}
-		printf("] ");
-	}
+	for(int idu = 0; idu < dus.size(); idu++)
+		print_du(*dus[idu]);
 	printf("]\n");	
-}  // print_dus()
+}  // print_dus
+
+template<class T>
+void MafiaSolver<T>::print_du(const Cdu &du) {
+	printf("[");
+	for(int idp = 0; idp < du.coords.size(); idp++) {
+		printf("%d:%.2lf..%.2lf", du.coords[idp].dim, 
+					 dense_ws[du.coords[idp].win].pleft, 
+					 dense_ws[du.coords[idp].win].pright);
+		if(idp < du.coords.size() - 1)
+			printf(" ");
+	}
+	printf("] ");
+}  // print_du
+
+template<class T>
+void MafiaSolver<T>::print_clusters() {
+	printf("clusters:\n");
+	for(int ic = 0; ic < du_clusters.size(); ic++) {
+		const vector<ref<Cdu> > & du_cluster = du_clusters[ic];
+		int cluster_dim = du_cluster[0]->len();
+		printf("cluster %d (%d): [ ", ic, cluster_dim);
+		for(int icdu = 0; icdu < du_cluster.size(); icdu++) {
+			print_du(*du_cluster[icdu]);
+			if(icdu < du_cluster.size() - 1)
+				printf("\\/ ");
+		}  // for(icdu)
+		printf("]\n");
+	}  // for(ic)
+}  // print_clusters
 
 template<class T>
 vector<vector<int> > mafia_solve

@@ -127,3 +127,32 @@ the situation can be fixed with more bins and windows (-n400 -M100), but this
 does not always help. For higher dimensions, the detection rate in case of
 multiple clusters (4 2d clusters) is even lower: everything is detected in 1
 dimension only, and is for some reason not merged into 2d. 
+
+16.01.2013
+
+1) Now trying to parallelize computationally intensive parts of the algorithm on
+CPU using OpenMP. For point counting, tried applying omp for to the loop on CDUs
+and the loop on bitmap words. So far, it seems that applying it to both
+directives the most stable performace, so leaving it this way. Parallelizing
+only the inner loop (on words) is slower, while parallelizing only the outer
+loop (on CDUs) leads to less stable performance.
+
+2) Parallelized building bitmaps with OpenMP. This required modification of bitmap
+computation. omp for was applied to both loops (on windows and on words), to
+achieve the most flexibility.
+
+3) Parallelized histogram and extent computation with OpenMP. Only the outer
+loop was parallelized for computation, as OpenMP for C doesn't support min/max
+reduction. And this is bad, because it limits acceleration that can be achieved
+there with high number of cores or low data dimensionality. For histogram
+construction, both outer and inner loops were parallelized. For the inner loop,
+histograms were privatized for each thread, and then accumulated.
+
+4) The preliminary experiment involved 1000,000 20-d points, with a single 10-d
+cluster. The experiment was done on my notebook, which is a 2011 11.6"
+MacbookAir with a 1.6 GHz Sandy Bridge CPU. The CPU has 2 2-way-hyperthreaded
+cores, and the number of threads used by OpenMP is 4. On average, around 2x
+acceleration was achieved in all parts of the MAFIA algorithm where OpenMP
+directives were used. Now will add --seq option for disabling parallelism, and
+do an experiment on a cluster.
+

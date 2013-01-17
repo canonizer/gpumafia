@@ -38,6 +38,8 @@ class Cdu : public ref_object {
   Cdu(int dim, int win) : npoints(0), flag(false) {
     coords.push_back(dimpair_t(dim, win));
   }
+	/** the dimensionality (length) of the CDU */
+	inline int len() const { return coords.size(); }
   /** checks whether the CDU is the same as another one */
   bool operator==(const Cdu &cdu2) const;
   /** checks whether the CDU is distinct from another one */

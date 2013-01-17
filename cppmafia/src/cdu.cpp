@@ -163,14 +163,23 @@ template<class T> int Cdu::count_points_direct
 		npoints = w.width * w.max;
 	} else {
 		// multi-d, do real point counting
-		npoints = 0;
+		// new variable for points, to satisfy OpenMP
+		int local_npoints = 0;
+		#pragma omp parallel for reduction(+:local_npoints)
 		for(int i = 0; i < n; i++) {
 			if(this->contains_point(ps, n, d, i, ws))
-				npoints++;
+				local_npoints++;
 		}
+		npoints = local_npoints;
 	}
   return npoints;
 }  // count_points_direct
+
+// moved __builtin_popcount into a separate function, to satisfy GCC
+// and its OpenMP implementation
+static inline int popcnt(unsigned word) {
+	return __builtin_popcount(word);
+}
 
 int Cdu::count_points_bitmaps
 (int nwords, unsigned *bmps, const vector<Window> & ws) {
@@ -181,13 +190,16 @@ int Cdu::count_points_bitmaps
 		npoints = w.width * w.max;
 	} else {
 		// multi-d, do real point counting
-		npoints = 0;
+		// new variable for points, to satisfy OpenMP
+		int local_npoints = 0;
+		#pragma omp parallel for reduction(+:local_npoints)
 		for(int iword = 0; iword < nwords; iword++) {
 			unsigned word = ~0u;
 			for(int icoord = 0; icoord < coords.size(); icoord++)
 				word &= BMPS(coords[icoord].win, iword);
-			npoints += __builtin_popcount(word);
+			local_npoints += popcnt(word);
 		}  // for(iword)
+		npoints = local_npoints;
 	}
   return npoints;
 }  // count_points

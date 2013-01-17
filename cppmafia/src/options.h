@@ -19,7 +19,10 @@ enum {
 	OptionUseDevice = 0x10,
 	/** whether to output the point data, not just indices (this does
 			significantly more I/O, so is not done automatically) */
-	OptionOutputPoints = 0x20
+	OptionOutputPoints = 0x20,
+	/** whether to do computations on CPU sequentiall, by using only 1 OpenMP
+			thread */
+	OptionSequential = 0x40
 };
 
 /** options for MAFIA algorithm and program */

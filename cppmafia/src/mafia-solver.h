@@ -114,8 +114,12 @@ class MafiaSolver {
 	void print_bitmaps();
 	/** prints the terminal dense units found */
 	void print_terminal_dus();
-	/** print just a list of CDUs */
+	/** print just a list of (C)DUs */
 	void print_dus(vector<ref<Cdu> > &dus);
+	/** prints a single (C)DU */
+	void print_du(const Cdu& du);
+	/** print the resulting clusters - extents in DNF */
+	void print_clusters();
 
  private:
 	// initial data of the algorithm
