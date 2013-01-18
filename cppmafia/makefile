@@ -35,7 +35,10 @@ $(TGT):	$(SRC) makefile.def
 	$(CXX) $(FLAGS) $(SRC_C) -o $(TGT)
 
 profil:
-	$(CXX) $(FLAGS) $(FLAGS) -pg $(SRC_C) -o $(TGT)
+	$(CXX) $(FLAGS) -pg $(SRC_C) -o $(TGT)
+
+debug:
+	$(CXX) $(FLAGS) -g $(SRC_C) -o $(TGT)
 
 #test run on a local node
 run: $(TGT)

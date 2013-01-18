@@ -24,15 +24,17 @@ if [ $GENERATE == 1 ]; then
 fi
 
 # generate profile data; also alternate between bitmap and direct
-for s in {host,device}; do
+for s in {seq,par,dev}; do
 		sopt=''
-		if [ $s == device ]; then
-				sopt=--device
+		if [ $s == seq ]; then
+				sopt=--seq
+		elif [ $s == dev ]; then
+				sopt="--seq --device"
 		fi
 		for k in {2..10}; do
 				cp cppmafia-dev.sh cppmafia-tmp-0.sh
-				echo mpiexec -np '$NSLOTS' ../../cppmafia/bin/cppmafia --timing -n100 \
-						--seq $sopt	$DATA_DIR/cluster-$k.dat >> cppmafia-tmp-0.sh
+				echo mpiexec -np '$NSLOTS' ../../cppmafia/bin/cppmafia --timing \
+						$sopt	$DATA_DIR/cluster-$k.dat >> cppmafia-tmp-0.sh
 				# submit and wait for completion
 				TASK_ID=`msub -qdevel cppmafia-tmp-0.sh`
 				while qstat $TASK_ID 2>&1>/dev/null; do 

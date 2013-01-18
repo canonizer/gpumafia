@@ -30,7 +30,7 @@ for s in {direct,bitmap}; do
 				sopt=--no-bitmap
 		fi
 		for k in {2..10}; do
-				../../cppmafia/bin/cppmafia --timing -n100 $sopt	\
+				../../cppmafia/bin/cppmafia --timing -n100 $sopt	--seq\
 						$DATA_DIR/cluster-$k.dat > time-$s-$k.log
 		done
 done

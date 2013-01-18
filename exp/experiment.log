@@ -156,3 +156,43 @@ acceleration was achieved in all parts of the MAFIA algorithm where OpenMP
 directives were used. Now will add --seq option for disabling parallelism, and
 do an experiment on a cluster.
 
+17.01.2013
+
+1) Spent some time in understanding as to why the parallel program runs on the
+head node, but crashes on the compute node of JUDGE system. As it turned out,
+I've generated 10,000,000 20-d points instead of 10-d points, and ran afoul of
+virtual memory limits on compute nodes. With 10-d points, everything works fine,
+results match, and the scene is ready for two more experiments: CPU performance
+for different number of threads, and seq. CPU vs. parallel CPU vs GPU
+performance for different cluster sizes.
+
+2) Starting doing OpenMP experiments on JUDGE. I currently decided to simply
+trust (if I ever can do that) to OpenMP scheduling. This experiment
+(experiment-08) deals with a single file, which contains 10,000,000 10-d points,
+with a single cluster of dimensionality 10. The number of OpenMP threads varied
+from 1 (full sequential) to 24. As the CPU is two-way hyperthreaded,
+acceleartion reaches a plateau at 12 cores. Histogram gets about 7x times
+acceleration, bitmap construction about 6x, and point counting 9x. This is
+definitely better than the sequential case, but still worse than using the GPU. 
+
+In future, it is possible to experiment with different OpenMP thread affinity
+settings. But for now, numbers obtained using OpenMP indicate that default
+scheduling is reasonable.
+
+3) Compared sequential CPU vs. parallel CPU vs. GPU implementations. Performance
+testing was again performed on 10,000,000 10-d points, with cluster
+dimensionality varying from 2 to 10. Parallelization on a 12-core dual-socket
+CPU removes much of the benefit of using the GPU. When the point data transfer
+time is taken into account, GPU implementation is only about 1.5-2x faster than
+the parallel CPU implementation. While the main phases, such as histogram
+building (excluding data transfer) and point counting still receive significant
+acceleration, respectively about 30x and 5x, this is eaten away by the need to
+transfer data to GPU, and also by steps not accelerated on the GPU, such as
+cluster expansion. 
+
+Transferring bitmap back to host side takes time as well. However, after final
+cluster construction is moved to GPU, something can be shaved off GPU time, to
+provide more acceleration. Kepler comparison is also waiting. Performance per
+watt comparison may be also beneficial, especially for the Kepler case. However,
+it must be admitted that after CPU parallelization, GPU performance domination
+is undermined significantly.

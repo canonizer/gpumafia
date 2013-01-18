@@ -23,7 +23,7 @@ static struct option long_opts[] = {
 	{"no-bitmaps", no_argument, 0, 'P'}, 
 	{"verbose", no_argument, 0, 'V'},
 	{"timing", no_argument, 0, 't'},
-	{"device", no_argument, 0, 'D'},
+	{"device", no_argument, 0, 'd'},
 	{"output-points", no_argument, 0, 'p'},
 	{"seq", no_argument, 0, 'S'},
 	{"sequential", no_argument, 0, 'S'},

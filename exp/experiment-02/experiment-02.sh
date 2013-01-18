@@ -18,7 +18,7 @@ done
 
 # generate profile data
 for k in {8..18}; do
-		../../cppmafia/bin/cppmafia -n100	\
+		../../cppmafia/bin/cppmafia -n100	--seq\
 				/private/adinetz/cluster-n20k-20d/cluster-$k.dat
 		gprof ../../cppmafia/bin/cppmafia -q gmon.out | head -50 > prof-$k.log
 		rm gmon.out

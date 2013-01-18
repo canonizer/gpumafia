@@ -1,0 +1,20 @@
+workdir: /homeb/zam/adinetz/mafia/exp/experiment-08
+running on 1 cpus ...
+clusters:
+cluster 0 (1): [ [0:25.00..26.00] ]
+cluster 1 (1): [ [7:53.00..54.00] ]
+cluster 2 (1): [ [9:35.00..36.00] ]
+cluster 3 (10): [ [0:15.00..25.00 1:57.00..67.00 2:50.00..61.00 3:0.00..11.00 4:57.00..68.00 5:46.00..57.00 6:22.00..33.00 7:54.00..64.00 8:70.00..81.00 9:25.00..35.00] ]
+reading points: 18.488632 s
+building histogram: 0.894466 s
+building windows: 0.000105 s
+building bitmaps: 0.189362 s
+finding and deduplicating CDUs: 0.007540 s
+finding dense CDUs: 1.699639 s
+finding unjoined DUs: 0.000791 s
+building graph: 0.000059 s
+building clusters: 0.141827 s
+writing data: 1.222926 s
+total time: 22.645347 s
+I/O time: 19.711558 s
+compute time: 2.933789 s

@@ -25,7 +25,7 @@ for s in {direct,bitmap}; do
 				sopt=--no-bitmap
 		fi
 		for k in {2..10}; do
-				../../cppmafia/bin/cppmafia -n100 $sopt	\
+				../../cppmafia/bin/cppmafia -n100 $sopt	--seq\
 						$DATA_DIR/cluster-$k.dat
 				gprof ../../cppmafia/bin/cppmafia -q gmon.out | head -100 > prof-$s-$k.log
 				rm gmon.out

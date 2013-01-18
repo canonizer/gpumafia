@@ -9,7 +9,7 @@
 # for OpenMP/hybrid jobs only
 
 ### start of jobscript
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=12
 # for OpenMP jobs only
 cd $PBS_O_WORKDIR
 echo "workdir: $PBS_O_WORKDIR"
