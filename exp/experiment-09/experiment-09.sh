@@ -24,15 +24,23 @@ if [ $GENERATE == 1 ]; then
 fi
 
 # generate profile data; also alternate between bitmap and direct
-for s in {seq,par,dev}; do
+for s in {seq,par4,par24,dev}; do
 		sopt=''
 		if [ $s == seq ]; then
 				sopt=--seq
 		elif [ $s == dev ]; then
 				sopt="--seq --device"
 		fi
+		# number of OpenMP threads
+		nt=1
+		if [ $s == par4 ]; then
+				nt=4
+		elif [ $s == par24 ]; then
+				nt=24
+		fi
 		for k in {2..10}; do
 				cp cppmafia-dev.sh cppmafia-tmp-0.sh
+				echo export OMP_NUM_THREADS=$nt >> cppmafia-tmp-0.sh
 				echo mpiexec -np '$NSLOTS' ../../cppmafia/bin/cppmafia --timing \
 						$sopt	$DATA_DIR/cluster-$k.dat >> cppmafia-tmp-0.sh
 				# submit and wait for completion

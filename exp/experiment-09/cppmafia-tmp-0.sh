@@ -12,3 +12,5 @@ cd $PBS_O_WORKDIR
 echo "workdir: $PBS_O_WORKDIR"
 NSLOTS=1
 echo "running on $NSLOTS cpus ..."
+export OMP_NUM_THREADS=1
+mpiexec -np $NSLOTS ../../cppmafia/bin/cppmafia --timing --seq --device /homeb/zam/adinetz/try/mafia/cluster-n10m-d10/cluster-10.dat

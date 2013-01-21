@@ -3,16 +3,16 @@ running on 1 cpus ...
 clusters:
 cluster 0 (1): [ [2:11.00..12.00] ]
 cluster 1 (5): [ [0:62.00..73.00 1:52.00..63.00 2:1.00..11.00 3:74.00..85.00 4:17.00..28.00] ]
-reading points: 21.584757 s
-building histogram: 0.173493 s
-building windows: 0.000126 s
-building bitmaps: 0.056528 s
-finding and deduplicating CDUs: 0.000051 s
-finding dense CDUs: 0.011952 s
-finding unjoined DUs: 0.000014 s
-building graph: 0.000034 s
-building clusters: 0.143699 s
-writing data: 1.231602 s
-total time: 23.202255 s
-I/O time: 22.816358 s
-compute time: 0.385897 s
+reading points: 21.472579 s
+building histogram: 0.173262 s
+building windows: 0.000124 s
+building bitmaps: 0.056932 s
+finding and deduplicating CDUs: 0.000050 s
+finding dense CDUs: 0.012240 s
+finding unjoined DUs: 0.000013 s
+building graph: 0.000033 s
+building clusters: 0.138279 s
+writing data: 1.207701 s
+total time: 23.061214 s
+I/O time: 22.680280 s
+compute time: 0.380934 s

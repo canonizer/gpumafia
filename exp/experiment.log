@@ -196,3 +196,10 @@ provide more acceleration. Kepler comparison is also waiting. Performance per
 watt comparison may be also beneficial, especially for the Kepler case. However,
 it must be admitted that after CPU parallelization, GPU performance domination
 is undermined significantly.
+
+21.01.2013
+
+1) It looks like we also need an intermediate parallel experiment, with 4 CPU
+cores (par4 in experiment-09), to demonstrate GPU acceleration in a somewhat
+more realistic setup. In this case, acceleration is around 2.5-3 times, which is
+not as great as for a single-core case (5-15 times). 
