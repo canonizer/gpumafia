@@ -45,6 +45,14 @@ bool Cdu::operator<(const Cdu& cdu2) const {
 	}
 }  // operator<
 
+Cdu* Cdu::subsequence(int ic) const {
+	Cdu *sub_du = new Cdu();
+	for(int jc = 0; jc < len(); jc++)
+		if(jc != ic)
+			sub_du->coords.push_back(coords[jc]);
+	return sub_du;
+}  // subsequence
+
 bool Cdu::can_merge_with(const Cdu& cdu2) {
   int n = coords.size();
   if(cdu2.coords.size() != n)

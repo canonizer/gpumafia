@@ -22,7 +22,9 @@ enum {
 	OptionOutputPoints = 0x20,
 	/** whether to do computations on CPU sequentiall, by using only 1 OpenMP
 			thread */
-	OptionSequential = 0x40
+	OptionSequential = 0x40,
+	/** whether to use set algorithm also for generation and unjoined check */
+	OptionSetGenUnjoin = 0x80
 };
 
 /** options for MAFIA algorithm and program */

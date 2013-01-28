@@ -4,6 +4,7 @@
 #define MAFIA_SOLVER_H_
 
 #include <vector>
+#include <map>
 
 #include "cdu.h"
 #include "options.h"
@@ -51,6 +52,10 @@ class MafiaSolver {
 	void compute_bitmap_host(int iwin);
   /** finds the candidate dense units */
   void find_cdus();
+	/** generates new CDUs with a naive N^2 algorithm */
+	void naive_find_cdus();
+	/** generates new CDUs with sets; this implies using sets for deduplication */
+	void set_find_cdus();
 	/** deduplicate the CDUs found */
 	void dedup_cdus();
 	/** naive N**2 CDU deduplication */
@@ -61,6 +66,10 @@ class MafiaSolver {
 	void count_points_host();
 	/** clears away dense units which are new or unassimilated */
 	void find_unjoined_dus();
+	/** find unjoined DUs using a naive N^2 algorithm */
+	void naive_find_unjoined_dus();
+	/** find unjoined DUs using a set-based algorithm in N log N time */
+	void set_find_unjoined_dus();
 	/** builds the graph of DUs */
 	void build_du_graph();
 	/** find connected components of the DU graph; 
@@ -75,6 +84,8 @@ class MafiaSolver {
 	inline bool is_verbose() const { return flags & OptionVerbose; }
 	/** check whether to use set deduplication */
 	inline bool use_set_dedup() const { return flags & OptionSetDedup; }
+	/** check whether to use set generation and unjoined check */
+	inline bool use_set_gen() const { return flags & OptionSetGenUnjoin; }
 	/** checks whether to use bitmaps */
 	inline bool use_bitmaps() const { return flags & OptionUseBitmaps; }
 	/** checks whether to use the device (i.e., GPU) */
@@ -183,6 +194,8 @@ class MafiaSolver {
 	vector<ref<Cdu> > new_dus;
   /** current candidate dense units */
   vector<ref<Cdu> > cdus;
+	/** the set of CDU neighbors, used to represent the CDU graph */
+	map<Cdu*, vector<Cdu*> > neighbors;
 	/** the clusters consisting of DUs */
 	vector<vector<ref<Cdu> > > du_clusters;
 	/** the clusters consisting of point indices */

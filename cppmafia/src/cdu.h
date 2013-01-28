@@ -56,6 +56,11 @@ class Cdu : public ref_object {
 			vectors are equal, but the corresponding window number vector for a is smaller
 	*/
 	bool operator<(const Cdu &cdu2) const;
+	/** gets the subsequence of the CDU by omitting one of the components 
+			@param ic the component to omit
+			@remarks the caller is responsible for deallocation of the returned value
+	 */
+	Cdu* subsequence(int ic) const;
   /** checks whether the CDU can merge with another one */
   bool can_merge_with(const Cdu &cdu2);
   /** merge two units and create a third one; the new CDU is
@@ -83,8 +88,6 @@ class Cdu : public ref_object {
   /** the coordinates of the dense unit, sorted by ascending dimension
       number */
   vector<dimpair_t> coords;
-	/** the neighbouring CDUs */
-	vector<Cdu *> neighbours;
   /** number of points in the CDU */
   int npoints;
 	/** the flag which is used for various purposes connected with CDUs; in

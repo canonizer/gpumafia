@@ -203,3 +203,46 @@ is undermined significantly.
 cores (par4 in experiment-09), to demonstrate GPU acceleration in a somewhat
 more realistic setup. In this case, acceleration is around 2.5-3 times, which is
 not as great as for a single-core case (5-15 times). 
+
+28.01.2013
+
+1) Now doing generation using set algorithm. That is, for every (a-1)-DU, we generate
+all possible (a-2)-subsequences, then for every subsequence, we generate a list
+of DUs containing this subsequence. Finally, only those DUs which contain the
+common subsequence are checked for merging. It looks like in the case of small k
+(cluster dimensionality), the overhead introduced by more complex operations is
+small, if any. For larger k, however, the gain is pretty noticeable. However, as
+there's still exponent there, with larger k, the algorithm doesn't run as fast
+as we'd like. Now we need to implement set-based algorithm for unjoined check as
+well, and then proceed to experiments. In fact, for k >= 17, time for unjoined
+check still dominates.
+
+The existence of the range where the real costs of naive and set algorithms are
+similar raises the question of whether it is possible to port the naive
+algorithm to GPU to gain more acceleration. However, there are several points
+against it:
+
+- due to the difference between exponents, such a range is very short. In fact,
+we believe that for the current hardware, the difference between approaches for
+k >= 18 is so large that even the most powerful GPUs won't be able to bridge it.
+- generation and deduplication of CDUs on GPU requires lots of very irregular
+memory allocation, for which current GPUs are ill-suited. This further decreases
+obtainable acceleration.
+- unjoined check, or a part of it, can be accelerated on GPU. However, it has
+the same order of magnitude in costs as the generation, and so accelerating it
+will not increase performance much.
+
+All this said, there is still an open question whether it would be possible to
+parallelize gen, dedup and unjoin check on CPU. While the trivial algorithm is
+parallelizable, the optimized algorithm would require a multi-threaded
+hashtable. And while the implementation of one is available, multi-threading
+will certainly introduce its overhead. For the time being, so, we consider only
+algorithmic optimization of the gen/dedup/unjoin kernels, without considering
+its parallelization.
+
+2) Implemented set algorithm for assimilation check. Now it's time to see
+whether set unjoined check gives worse performance for small cluster
+dimensionalities. It looks like there is a small performance drop up to k=13,
+but after that, set-based unjoined check is better. Now its time for more
+serious experiments, to estimate performance differences and compare various
+hardware architectures.

@@ -332,36 +332,78 @@ void MafiaSolver<T>::build_windows() {
 template<class T>
 void MafiaSolver<T>::find_cdus() {
 	if(cur_dim > 0) {
-		// do search & merging of CDUs
-		// for the case of set deduplication, deduplication is done during generation
 		cdus.clear();
-		set<ref<Cdu>, CduCmp> new_cdus;
-		for(int i1 = 0; i1 < cur_dus.size(); i1++) {
-			for(int i2 = i1 + 1; i2 < cur_dus.size(); i2++) {
-				Cdu &du1 = *cur_dus[i1], &du2 = *cur_dus[i2];
-				if(du1.can_merge_with(du2)) {
-					// merge two dus
-					ref<Cdu> new_cdu = du1.merge_with(du2);
-					du1.flag = du2.flag = true;
-					if(use_set_dedup())
-						new_cdus.insert(new_cdu);
-					else
-						cdus.push_back(new_cdu);
-				}
-			}
-		}
-		// if set deduplication was used, everything must be copied back into the
-		// vector 
-		for(set<ref<Cdu>, CduCmp>::iterator pcdu = new_cdus.begin(); 
-				pcdu !=	new_cdus.end(); pcdu++) {
-			cdus.push_back(*pcdu);
-		}
+		if(use_set_gen() && cur_dim > 1)
+			set_find_cdus();
+		else
+			naive_find_cdus();
 	} else {
 		// just add all windows as CDUs
 		for(int iwin = 0; iwin < dense_ws.size(); iwin++)
 			cdus.push_back(new Cdu(dense_ws[iwin].idim, iwin));
 	}  // if(cur_dim > 0)
 }  // find_cdus
+
+template<class T>
+void MafiaSolver<T>::naive_find_cdus() {
+	// do search & merging of CDUs
+	// for the case of set deduplication, deduplication is done during generation
+	set<ref<Cdu>, CduCmp> new_cdus;
+	for(int i1 = 0; i1 < cur_dus.size(); i1++) {
+		for(int i2 = i1 + 1; i2 < cur_dus.size(); i2++) {
+			Cdu &du1 = *cur_dus[i1], &du2 = *cur_dus[i2];
+			if(du1.can_merge_with(du2)) {
+				// merge two dus
+				ref<Cdu> new_cdu = du1.merge_with(du2);
+				du1.flag = du2.flag = true;
+				if(use_set_dedup())
+					new_cdus.insert(new_cdu);
+				else
+					cdus.push_back(new_cdu);
+			}
+		}
+	}
+	// if set deduplication was used, everything must be copied back into the
+	// vector 
+	cdus.insert(cdus.end(), new_cdus.begin(), new_cdus.end());
+}  // naive_find_cdus
+
+template<class T>
+void MafiaSolver<T>::set_find_cdus() {
+	// set used for deduplication
+	set<ref<Cdu>, CduCmp> new_cdus;
+	// (a-2)-subsequences of (a-1)-DUs -> DUs containing them
+	map<ref<Cdu>, vector<Cdu*>, CduCmp> sub_dus;
+	// over all DUs
+	for(int idu = 0; idu < cur_dus.size(); idu++) {
+		Cdu *du = cur_dus[idu];
+		// over all (a-2)-subsequences
+		//printf("du=");
+		//print_du(*du);
+		//printf("\n");
+		for(int ic = 0; ic < du->len(); ic++) {
+			ref<Cdu> sub_du = du->subsequence(ic);
+			// generate by merging with all DUs having this subsequence which are
+			// already in the set
+			vector<Cdu*>& other_dus = sub_dus[sub_du];
+			for(int jdu = 0; jdu < other_dus.size(); jdu++) {
+				// merge check is still required: the differing coordinates must be in
+				// different dimensions
+				Cdu *du2 = other_dus[jdu];
+				if(du->can_merge_with(*du2)) {
+					du->flag = du2->flag = true;
+					ref<Cdu> new_du = du->merge_with(*du2);
+					new_cdus.insert(new_du);
+				}
+			}
+			// add the DU to the set under sub_du key, so it can be used for merging
+			// later on, but not with itself
+			sub_dus[sub_du].push_back(du);
+		}  // for(all sub-sequences)
+	}  // for(all DUs)
+	// insert all into the CDUs vector
+	cdus.insert(cdus.end(), new_cdus.begin(), new_cdus.end());
+}  // set_find_cdus
 
 template<class T>
 void MafiaSolver<T>::dedup_cdus() {
@@ -423,6 +465,14 @@ void MafiaSolver<T>::count_points_host() {
 template<class T>
 void MafiaSolver<T>::find_unjoined_dus() {
 	terminal_dus.push_back(vector<ref<Cdu> > ());
+	if(use_set_gen() && cur_dim > 0)
+		set_find_unjoined_dus();
+	else
+		naive_find_unjoined_dus();
+}  // find_unjoined_dus
+
+template<class T>
+void MafiaSolver<T>::naive_find_unjoined_dus() {
 	vector<ref<Cdu> > &dim_terminal_dus = terminal_dus[cur_dim - 1];
 	for(int idu = 0; idu < cur_dus.size(); idu++) {
 		// check whether du is unjoined or unassimilated
@@ -442,11 +492,29 @@ void MafiaSolver<T>::find_unjoined_dus() {
 			joined = false;
 		}
 		// add to terminal dense units
-		if(!joined) {
+		if(!joined)
 			dim_terminal_dus.push_back(cur_dus[idu]);
-		}
 	}  // for(current du)
-}  // find_unjoined_dus
+}  // naive_find_unjoined_dus
+
+template<class T>
+void MafiaSolver<T>::set_find_unjoined_dus() {
+	// find a set of all (a-1)-subsequences of new DUs
+	set<ref<Cdu>, CduCmp> sub_dus;
+	for(int idu = 0; idu < new_dus.size(); idu++) {
+		Cdu *du = new_dus[idu];
+		for(int ic = 0; ic < du->len(); ic++)
+			sub_dus.insert(du->subsequence(ic));
+	}  // for(each new DU)
+	// then check which of the previous DUs are assimilated
+	vector<ref<Cdu> > &dim_terminal_dus = terminal_dus[cur_dim - 1];
+	for(int idu = 0; idu < cur_dus.size(); idu++) {
+		Cdu *old_du = cur_dus[idu];
+		// add to terminal DUs iff not assimilated
+		if(sub_dus.find(old_du) == sub_dus.end())
+			dim_terminal_dus.push_back(old_du);		
+	}  // for(each old DU)
+}  // set_find_unjoined_dus
 
 template<class T>
 void MafiaSolver<T>::build_du_graph() {
@@ -458,8 +526,14 @@ void MafiaSolver<T>::build_du_graph() {
 				Cdu* pdu2 = dus[idu2];
 				if(pdu1->has_common_face_with(*pdu2, dense_ws)) {
 					// add an edge in both directions
-					pdu1->neighbours.push_back(pdu2);
-					pdu2->neighbours.push_back(pdu1);
+					if(neighbors.find(pdu1) == neighbors.end())
+						neighbors.insert(neighbors.begin(), 
+														 pair<Cdu*, vector<Cdu*> >(pdu1, vector<Cdu*>()));
+					neighbors[pdu1].push_back(pdu2);
+					if(neighbors.find(pdu2) == neighbors.end())
+						neighbors.insert(neighbors.begin(), 
+														 pair<Cdu*, vector<Cdu*> >(pdu2, vector<Cdu*>()));
+					neighbors[pdu2].push_back(pdu1);
 				}
 			}  // for(idu2)
 		}  // for(idu1)
@@ -488,8 +562,8 @@ void MafiaSolver<T>::build_du_clusters() {
 				pdu->flag = true;
 				cluster.push_back(pdu);
 				// push unattended neighbours to the queue
-				for(int ineigh = 0; ineigh < pdu->neighbours.size(); ineigh++) {
-					Cdu *pneigh = pdu->neighbours[ineigh];
+				for(int ineigh = 0; ineigh < neighbors[pdu].size(); ineigh++) {
+					Cdu *pneigh = neighbors[pdu][ineigh];
 					if(!pneigh->flag) 
 						q.push(pneigh);
 				} // for()

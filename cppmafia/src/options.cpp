@@ -19,6 +19,7 @@ static struct option long_opts[] = {
 	{"min-wins", required_argument, 0, 'u'},
 	{"max-wins", required_argument, 0, 'M'},
 	{"no-set-dedup", no_argument, 0, 'D'},
+	{"no-set-gen", no_argument, 0, 'G'},
 	{"no-bitmap", no_argument, 0, 'P'}, 
 	{"no-bitmaps", no_argument, 0, 'P'}, 
 	{"verbose", no_argument, 0, 'V'},
@@ -36,7 +37,8 @@ Options *Options::opts = 0;
 
 Options::Options(int argc, char **argv) 
 	: in_path(0), out_path(0), min_nbins(1000), min_nwindows(5), max_nwindows(100),
-		alpha(1.5), beta(0.25), flags(OptionSetDedup | OptionUseBitmaps) {
+		alpha(1.5), beta(0.25), 
+		flags(OptionSetDedup | OptionUseBitmaps | OptionSetGenUnjoin) {
 	int cur_opt = 0;
 	optind = 1;
 	int opt_ind = -1;
@@ -70,6 +72,10 @@ Options::Options(int argc, char **argv)
 		case 'D':
 			// disable set deduplication
 			flags &= ~OptionSetDedup;
+			break;
+		case 'G':
+			// disable using sets for cluster generation
+			flags &= ~OptionSetGenUnjoin;
 			break;
 		case 'p':
 			// whether to output points
