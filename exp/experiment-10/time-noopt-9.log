@@ -1,0 +1,15 @@
+clusters:
+cluster 0 (9): [ [0:1.01..12.01 1:72.98..83.98 2:54.99..65.99 3:56.00..67.00 4:29.00..40.00 5:48.00..59.00 6:51.00..62.00 7:73.98..84.98 8:15.00..26.00] ]
+reading points: 0.598357 s
+building histogram: 0.066937 s
+building windows: 0.000383 s
+building bitmaps: 0.000000 s
+finding and deduplicating CDUs: 0.004101 s
+finding dense CDUs: 0.784337 s
+finding unjoined DUs: 0.000273 s
+building graph: 0.000056 s
+building clusters: 0.003529 s
+writing data: 0.014946 s
+total time: 1.472918 s
+I/O time: 0.613303 s
+compute time: 0.859615 s

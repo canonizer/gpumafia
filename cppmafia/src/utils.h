@@ -27,7 +27,7 @@ void bulk_free(void *ptr);
 
 /** accessing points; variables ps, n and d need be defined */
 //#define PS(i, idim) ps[i * d + idim]
-#define PS(i, idim) ps[(idim) * n + (i)]
+#define PS(i, idim) (ps[(idim) * n + (i)])
 
 /** accessing bitmap words; variables bmps, nwords and nwidnows need be defined
 		*/ 

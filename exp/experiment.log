@@ -246,3 +246,26 @@ dimensionalities. It looks like there is a small performance drop up to k=13,
 but after that, set-based unjoined check is better. Now its time for more
 serious experiments, to estimate performance differences and compare various
 hardware architectures.
+
+3) Doing an experiment (experiment-10) comparing single-core timing with all
+algorithmic optimizations implemented so far, and with all optimizations
+disabled (--no-set-dedup --no-set-gen --no-bitmaps). 
+
+29.01.2013
+
+1) Fixed a bug in the generator which, when multiple clusters were being
+generated, caused all clusters to be generated on 0..1 (instead of, say, 32..42)
+in some dimensions. This improved cluster detection rate, but when clusters
+intersect in some of the dimensions, they are still not reliably detected. Now
+trying out the dimensionality of clusters which can be detected reliably, for
+the fixed number of clusters. The tests are conducted for d=20 and standard
+parameter values.
+
+m								 k
+2								 8 (mostly reliably, though 7 is better)
+3								 6 (7 is already around 50/50)
+4								 3 (4 is much less reliable)
+
+It looks like for test purposes, non-intersecting clusters, maybe aligned to
+integer boundaries, should be generated.
+

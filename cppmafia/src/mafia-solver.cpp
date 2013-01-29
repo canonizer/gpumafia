@@ -190,13 +190,13 @@ void MafiaSolver<T>::compute_histo_host(int idim) {
 	int nbins = nbinss[idim];
 	T bin_iwidth = nbins / (pmaxs[idim] - pmins[idim]);
 	int *histo = histos[idim];
-	#pragma omp parallel
+	//#pragma omp parallel
 	{
 
 		// phase 1: compute private histograms
 		int *priv_histo = (int*)malloc(sizeof(int) * nbins);
 		memset(priv_histo, 0, sizeof(int) * nbins);
-		#pragma omp for
+		//#pragma omp for
 		for(int i = 0; i < n; i++) {
 			int ibin = (int)floor((PS(i, idim) - pmins[idim]) * bin_iwidth);
 			ibin = min(max(ibin, 0), nbins - 1);
@@ -204,7 +204,7 @@ void MafiaSolver<T>::compute_histo_host(int idim) {
 		}
 
 		// phase 2: build the global histogram
-		#pragma omp critical
+		//#pragma omp critical
 		for(int ibin = 0; ibin < nbins; ibin++)
 			histo[ibin] += priv_histo[ibin];
 		free(priv_histo);

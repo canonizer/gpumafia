@@ -1,0 +1,3 @@
++ cd /homeb/zam/adinetz/mafia/exp/experiment-10
++ echo 'workdir: /homeb/zam/adinetz/mafia/exp/experiment-10'
++ ./experiment-10.sh

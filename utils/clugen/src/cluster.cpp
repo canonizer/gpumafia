@@ -93,7 +93,7 @@ void Cluster::print_info(void) const {
 void Cluster::generate_box_point(double *p) const {
 	for(int iidim = 0; iidim < k; iidim++) {
 		int idim = dims[iidim];
-		p[idim] = drandom(cmin[idim], cmax[idim]);
+		p[idim] = drandom(cmin[iidim], cmax[iidim]);
 	}
 }  // generate_box_point
 
