@@ -42,6 +42,10 @@ struct Cluster {
 	/** generates a single point */
 	void generate_point(double *p) const;
 
+	/** checks whether two clusters intersect in at least one dimension; 
+			note that dimensions not yet initialized are not checked */
+	bool intersects_with(const Cluster& clu2) const;
+
 	/** prints information about the cluster */
 	void print_info(void) const;
 

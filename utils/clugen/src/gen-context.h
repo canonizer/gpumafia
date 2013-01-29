@@ -8,7 +8,7 @@ struct Cluster;
 
 /** general information for generation of points */
 struct GenContext {
-	
+
 	/** the total number of points to generate */
 	int n;
 	/** dimensionality of the dataset */
@@ -29,7 +29,10 @@ struct GenContext {
 	double pmax;
 	/** the cluster size, in each dimension */
 	double csize;
-
+	/** whether clusters that do not intersect in any dimensions should be
+	generated */
+	bool clusters_not_intersect;
+	
 	/** the pointers to the underlying clusters  */
 	Cluster **clusters;
 
@@ -56,6 +59,10 @@ struct GenContext {
 
 	/** prints out the context information (including the clusters) */
 	void print_info() const;
+
+	/** checks whether the cluster intersects with one of the clusters already in
+	the tree (except itself) */
+	bool intersects_with(const Cluster* clu2) const;
 
 	/** the destructor */
 	~GenContext();

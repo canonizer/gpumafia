@@ -78,6 +78,24 @@ windows (either -u or -M) should work, it has not been tested. So it better be
 divisible. 
 
 
+INPUT DATA 
+
+If you want to use MAFIA for something serious, you probably have them
+already. However, if you want just to play with the utility, profile it or test
+it for correctness and/or performance, there is a data generator provided. See
+../utils/clugen for the data generator. You can compile it by doing make (in
+that directory), and then generate different datasets with it. E.g.,
+
+bin/clugen -n100000 -d10 -k8 -m2 ~/try/mafia/cluster-8.dat
+
+will generate a 100,000-point 10-dimensional dataset, with 2 8-dimensional
+clusters, roughly 45,000 points each. The details of each cluster would be
+printed to stdout of clugen. When that file is input into MAFIA, it should then
+find the same or similar clusters. Generally, MAFIA should find one cluster with
+default parameters robustly; with more clusters, robustness decreases. To
+generate clusters which do not intersect in any dimensions (which is somewhat
+unrealistic), use clugen's -N switch.
+
 CODE
 
 options.{h,cpp} contain code for defining and parsing options. 

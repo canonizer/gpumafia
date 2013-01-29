@@ -77,6 +77,9 @@ void print_usage(int exit_code) {
 	fprintf(stderr, "  %-20s %s\n", "-l", 
 					"also generate clusters of lesser dimensionality than "
 					"the maximum");
+	fprintf(stderr, "  %-20s %s\n", "-N", 
+					"try to generate non-intersecting clusters; an error is produced if "
+					"cluster generation cannot be finished in fixed time");
 	fprintf(stderr, "  %-20s %s\n", "-h", "print this message and exit\n");
 	exit(exit_code);
 }  // print_usage
@@ -109,7 +112,7 @@ double parse_double(const char *name, double min_val, double max_val) {
 }  // parse_double
 
 void parse_cmdline(int argc, char **argv) {
-	const char *optstr = "shln:d:k:m:f:";
+	const char *optstr = "shlNn:d:k:m:f:";
 	int cur_opt;
 	optind = 1;
 	bool kmin_is_kmax = true;
@@ -120,6 +123,9 @@ void parse_cmdline(int argc, char **argv) {
 			break;
 		case 'l':
 			kmin_is_kmax = false;
+			break;
+		case 'N':
+			gc->clusters_not_intersect = true;
 			break;
 		case 'n':
 			gc->n = parse_int("n", 1);

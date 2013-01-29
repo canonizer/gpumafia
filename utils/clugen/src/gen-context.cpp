@@ -13,7 +13,7 @@ using namespace std;
 
 GenContext::GenContext() :
 	n(10000), d(2), kmin(2), kmax(2), m(1), ct(BOX), cf(0.9), pmin(0), 
-	pmax(100), csize(10), clusters(0)
+	pmax(100), csize(10), clusters(0), clusters_not_intersect(false)
 {}  // GenContext
 
 GenContext::~GenContext() {
@@ -26,6 +26,7 @@ GenContext::~GenContext() {
 
 void GenContext::generate_template(void) {
 	clusters = new Cluster*[m];
+	memset(clusters, 0, sizeof(*clusters) * m);
 	for(int i = 0; i < m; i++) {
 		int k1 = irandom(kmin, kmax);
 		clusters[i] = new Cluster(this, k1, cf / m, ct);
@@ -72,6 +73,15 @@ void GenContext::print_info(void) const {
 		printf("\n");
 	}
 }  // print_info
+
+bool GenContext::intersects_with(const Cluster* clu2) const {
+	for(int iclu = 0; iclu < m; iclu++) {
+		Cluster *clu = clusters[iclu];
+		if(clu && clu != clu2 && clu->intersects_with(*clu2))
+			return true;
+	}
+	return false;
+}  // intersects_with
 
 double drandom(double a, double b) {
 	return a + (b - a) * ((double)random() / RAND_MAX);

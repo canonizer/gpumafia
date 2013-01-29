@@ -267,5 +267,16 @@ m								 k
 4								 3 (4 is much less reliable)
 
 It looks like for test purposes, non-intersecting clusters, maybe aligned to
-integer boundaries, should be generated.
+integer boundaries, should be generated. So, going to implement generating
+non-intersecting clusters in clugen now. 
 
+2) Implemented generating non-intersecting clusters, i.e. clusters which do not
+share their spans in any of the dimensions. It turns out that such clusters are
+very useful for providing just right-tuned input for MAFIA algorithm. MAFIA
+easily detects up to 5 non-intersecting clusters without parameter tuning. Some
+low-dimensional garbage is detected as well, but this is the typical behavior of
+MAFIA. For more than 5 non-intersecting clusters or lots of noise, alpha must be
+lowered. In fact, for many practical cases, a value of alpha < 1 may be useful,
+as found by Jan. But now we will do timing experiments with clusters comparing
+performance of different versions of the algorithm, first on JUDGE, and then on
+Kepler. 
