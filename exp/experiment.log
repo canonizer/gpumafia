@@ -280,3 +280,15 @@ lowered. In fact, for many practical cases, a value of alpha < 1 may be useful,
 as found by Jan. But now we will do timing experiments with clusters comparing
 performance of different versions of the algorithm, first on JUDGE, and then on
 Kepler. 
+
+30.01.2013
+
+1) Conducted the experiment with multiple clusters. The dataset series consisted of
+10,000,000 20-d points, with three clusters in each (not intersecting in any
+dimension, so to be reliably detected), with cluster dimensionality varying from
+3 to 16 across the series. We dropped a set with a 17-dimensional cluster after
+it turned out that it took too much time to run it. With increasing cluster
+dimensionality, GPU fairs better: for k=16, it gives 4x acceleration over
+12-core CPU, and around 40x over a single core. Now will do the experiment with
+Kepler, and then build the plots of the results.
+

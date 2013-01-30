@@ -1,18 +1,23 @@
-workdir: /homeb/zam/adinetz/mafia/exp/experiment-09
-running on 1 cpus ...
 clusters:
-cluster 0 (1): [ [8:44.00..45.00] ]
-cluster 1 (10): [ [0:31.00..42.00 1:22.00..33.00 2:77.00..88.00 3:28.00..39.00 4:16.00..27.00 5:54.00..65.00 6:52.00..63.00 7:65.00..76.00 8:34.00..44.00 9:52.00..63.00] ]
-reading points: 18.235141 s
-building histogram: 0.316476 s
-building windows: 0.000111 s
-building bitmaps: 0.068731 s
-finding and deduplicating CDUs: 0.007503 s
-finding dense CDUs: 0.544814 s
-finding unjoined DUs: 0.000799 s
-building graph: 0.000069 s
-building clusters: 0.114789 s
-writing data: 1.122791 s
-total time: 20.411225 s
-I/O time: 19.357932 s
-compute time: 1.053293 s
+cluster 0 (1): [ [1:49.00..50.00] ]
+cluster 1 (1): [ [2:46.00..47.00] ]
+cluster 2 (1): [ [2:94.00..95.00] ]
+cluster 3 (1): [ [5:23.00..24.00] ]
+cluster 4 (1): [ [13:77.00..78.00] ]
+cluster 5 (1): [ [17:2.00..3.00] ]
+cluster 6 (10): [ [0:11.00..22.00 2:84.00..94.00 4:26.00..37.00 7:64.00..75.00 10:73.00..84.00 11:10.00..21.00 13:20.00..31.00 15:86.00..97.00 16:10.00..21.00 19:61.00..72.00] ]
+cluster 7 (10): [ [1:50.00..60.00 2:60.00..71.00 3:7.00..18.00 5:68.00..79.00 7:34.00..45.00 10:42.00..53.00 12:24.00..35.00 13:67.00..77.00 17:3.00..13.00 19:22.00..33.00] ]
+cluster 8 (10): [ [2:36.00..46.00 4:61.00..72.00 5:13.00..23.00 6:0.00..10.00 9:40.00..51.00 11:63.00..73.00 13:47.00..58.00 14:41.00..52.00 15:4.00..15.00 19:0.00..11.00] ]
+reading points: 36.196893 s
+building histogram: 0.325594 s
+building windows: 0.000196 s
+building bitmaps: 0.204994 s
+finding and deduplicating CDUs: 0.028209 s
+finding dense CDUs: 1.579684 s
+finding unjoined DUs: 0.007413 s
+building graph: 0.000102 s
+building clusters: 0.267242 s
+writing data: 1.169531 s
+total time: 39.779859 s
+I/O time: 37.366424 s
+compute time: 2.413435 s
