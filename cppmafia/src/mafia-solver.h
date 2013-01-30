@@ -169,6 +169,10 @@ class MafiaSolver {
   //vector<vector<int> > histos;
 	/** an array containing the data for all histograms */
 	int *histo_data;
+	/** an array containing the temporary histogram data  on the GPU */
+	int *d_histo;
+	/** size of the d_histo array */
+	int d_hist_size;
 	/** the starts of individual histograms in the histo_data array */
 	int **histos;
 	/** the number of bins in the histogram for each dimension */
@@ -183,6 +187,18 @@ class MafiaSolver {
 	unsigned *d_bmps;
 	/** the number words used to store a single bitmap */
 	int nwords;
+	/** window numbers, on device */
+	int *h_iwins;
+	/** window numbers, on device */
+	int* d_iwins;
+	/** length of d_iwins */
+	int hd_iwins_sz;
+	/** point counts on device */
+	int *d_pcounts;
+	/** point counts on host */
+	int* h_pcounts;
+	/** size of d_pcounts and h_pcounts */
+	int hd_pcounts_sz;
   /** terminal dense units which will be connected into a graph;
    each array corresponds to a single dimensionality */
   vector<vector<ref<Cdu> > > terminal_dus;

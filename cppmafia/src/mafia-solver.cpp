@@ -17,8 +17,8 @@
 template<class T>
 MafiaSolver<T>::MafiaSolver
 (const T *points, int n, int d, const Options &opts) : 
-	d_ps(0), pmins(0), pmaxs(0), nbinss(0), histo_data(0), histos(0), bmps(0), 
-	d_bmps(0) {
+	d_ps(0), pmins(0), pmaxs(0), nbinss(0), histo_data(0), d_histo(0), d_hist_size(0), histos(0), bmps(0),
+	d_bmps(0), h_iwins(0), d_iwins(0), hd_iwins_sz(0), d_pcounts(0), h_pcounts(0), hd_pcounts_sz(0) {
   // initialize the class
   this->ps = points;
   this->n = n;
