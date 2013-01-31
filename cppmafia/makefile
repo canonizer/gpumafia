@@ -24,7 +24,8 @@ TMP=*~ src/*~ $(TGT) *.o tst/data/cluster-*.idx tst/data/cluster-*.dat *.out \
 
 # set device support
 ifeq ($(CXX), nvcc) 
-	FLAGS += -arch=sm_20
+#	FLAGS += -gencode arch=compute_35,code=sm_35
+	FLAGS += -gencode arch=compute_20,code=sm_20
 	FLAGS += -DMAFIA_USE_DEVICE
 	SRC += $(SRC_CU)
 	SRC_C += $(SRC_CU)

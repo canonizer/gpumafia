@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <thrust/reduce.h>
 
+#define MAX_GRID_BLOCKS_Y 32768
+#define PCOUNT_NWORDS_PTHREAD 128
+
 using namespace thrust;
 
 template<class T> void MafiaSolver<T>::touch_dev() {
@@ -219,10 +222,12 @@ void MafiaSolver<T>::count_points_dev() {
 	size_t pcount_sz = sizeof(*h_pcounts) * ncdus;
 	CHECK(cudaMalloc((void**)&d_pcounts, pcount_sz));
 	CHECK(cudaMemset(d_pcounts, 0, pcount_sz));
-	int nwords_pthr = min(max(nwords / 64, 2), 64); // number of words per thread
+	// number of words per thread
+	int nwords_pthr = min(max(nwords / PCOUNT_NWORDS_PTHREAD, 2),
+	  PCOUNT_NWORDS_PTHREAD);
 	dim3 bs(64, 8);  // block size
 	// iterate over CDU parts
-	int ncdus_ppart = 32768 * bs.y;
+	int ncdus_ppart = MAX_GRID_BLOCKS_Y * bs.y;
 	int ncdu_parts = divup(ncdus, ncdus_ppart);
 	for(int icdu_part = 0; icdu_part < ncdu_parts; icdu_part++) {
 		int cur_ncdus = min(ncdus_ppart, ncdus - icdu_part * ncdus_ppart);
