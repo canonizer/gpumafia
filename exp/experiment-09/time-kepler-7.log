@@ -1,0 +1,20 @@
+clusters:
+cluster 0 (1): [ [5:65.00..66.00] ]
+cluster 1 (1): [ [9:99.00..100.00] ]
+cluster 2 (1): [ [10:55.00..56.00] ]
+cluster 3 (7): [ [1:70.00..81.00 2:51.00..62.00 9:19.00..30.00 10:45.00..55.00 11:85.00..96.00 12:31.00..42.00 17:61.00..72.00] ]
+cluster 4 (7): [ [4:78.00..89.00 5:66.00..76.00 6:19.00..30.00 8:64.00..75.00 12:49.00..60.00 14:8.00..19.00 16:51.00..62.00] ]
+cluster 5 (7): [ [5:2.00..13.00 8:47.00..57.00 9:89.00..99.00 10:67.00..77.00 13:75.00..86.00 17:6.00..16.00 18:71.00..82.00] ]
+reading points: 36.112660 s
+building histogram: 0.332241 s
+building windows: 0.000208 s
+building bitmaps: 0.087675 s
+finding and deduplicating CDUs: 0.001977 s
+finding dense CDUs: 0.045573 s
+finding unjoined DUs: 0.000652 s
+building graph: 0.000066 s
+building clusters: 0.257109 s
+writing data: 1.182124 s
+total time: 38.020284 s
+I/O time: 37.294784 s
+compute time: 0.725500 s

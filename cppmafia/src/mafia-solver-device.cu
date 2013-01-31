@@ -13,7 +13,8 @@
 
 #define MAX_CDU_DIM 32
 #define CDUS_PER_BLOCK 8
-#define PCOUNT_NWORDS_PTHR 32
+#define MAX_GRID_BLOCKS_Y 32768
+#define PCOUNT_NWORDS_PTHREAD 32
 
 using namespace thrust;
 
@@ -99,8 +100,7 @@ template<class T> void MafiaSolver<T>::compute_histo_dev(int idim) {
 	int nbins = nbinss[idim];
 	// on-device data for a histogram
 	size_t histo_sz = sizeof(*d_histo) * nbins;
-	if ( d_hist_size < histo_sz )
-	{
+	if (d_hist_size < histo_sz) {
 		cudaFree(d_histo);
 		CHECK(cudaMalloc((void**)&d_histo, histo_sz));
 		d_hist_size = histo_sz;
@@ -136,12 +136,12 @@ void MafiaSolver<T>::alloc_bitmaps_dev() {
 }  // alloc_bitmaps_dev
 
 /** kernel to compute the bitmaps on device
-		@param bmp bitmap data on device
-		@param nwords number of 32-bit words in the bitmap
-		@param ps device point data for thebitmap's dimension
-		@param n the number of points
-		@param pleft the left boundary of the window's range (inclusive)
-		@param pright the right boundary of the window's range (non-inclusive)
+	@param bmp bitmap data on device
+	@param nwords number of 32-bit words in the bitmap
+	@param ps device point data for thebitmap's dimension
+	@param n the number of points
+	@param pleft the left boundary of the window's range (inclusive)
+	@param pright the right boundary of the window's range (non-inclusive)
  */
 template<class T> __global__ void bitmap_kernel
 (unsigned * __restrict__ const bmp, const int nwords, const T* __restrict__ const ps, const int n, const T pleft, const T pright) {
@@ -252,11 +252,11 @@ void MafiaSolver<T>::count_points_dev() {
 	}
 	CHECK(cudaMemset(d_pcounts, 0, pcount_sz));
 	//This value can be lowered to lanuch more threads (less work per thread)
-	int nwords_pthr = min(max(nwords / PCOUNT_NWORDS_PTHR, 2), 
-	  PCOUNT_NWORDS_PTHR); // number of words per thread
+	int nwords_pthr = min(max(nwords / PCOUNT_NWORDS_PTHREAD, 2), 
+	  PCOUNT_NWORDS_PTHREAD); // number of words per thread
 	dim3 bs(64, CDUS_PER_BLOCK);  // block size
 	// iterate over CDU parts
-	int ncdus_ppart = 32768 * bs.y;
+	int ncdus_ppart = MAX_GRID_BLOCKS_Y * bs.y;
 	int ncdu_parts = divup(ncdus, ncdus_ppart);
 	for(int icdu_part = 0; icdu_part < ncdu_parts; icdu_part++) {
 		int cur_ncdus = min(ncdus_ppart, ncdus - icdu_part * ncdus_ppart);

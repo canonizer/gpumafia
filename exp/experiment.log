@@ -292,3 +292,10 @@ dimensionality, GPU fairs better: for k=16, it gives 4x acceleration over
 12-core CPU, and around 40x over a single core. Now will do the experiment with
 Kepler, and then build the plots of the results.
 
+31.01.2013
+
+1) Finished experiments on Kepler. What is interesting is that performance
+between Fermi and Kepler does not differ much, despite Kepler's supposedly
+faster atomics, though Kepler is marginally faster. Perhaps, there are more
+optimizations to be made for Kepler.
+

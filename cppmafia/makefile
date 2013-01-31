@@ -29,7 +29,8 @@ ifeq ($(CXX), nvcc)
 	GENCODE_SM30    := -gencode arch=compute_30,code=sm_30
 	GENCODE_SM35    := -gencode arch=compute_35,code=sm_35
 	GENCODE_FLAGS   := $(GENCODE_SM20) $(GENCODE_SM35)
-	FLAGS += -DKEPLER_OPTIMIZATIONS $(GENCODE_FLAGS) -lineinfo
+#	FLAGS += -DKEPLER_OPTIMIZATIONS $(GENCODE_FLAGS) -lineinfo
+	FLAGS += $(GENCODE_FLAGS) -lineinfo
 	FLAGS += -DMAFIA_USE_DEVICE
 	SRC += $(SRC_CU)
 	SRC_C += $(SRC_CU)
