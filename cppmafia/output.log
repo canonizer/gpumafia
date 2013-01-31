@@ -1,0 +1,1 @@
+nvcc  -Xcompiler -fopenmp -O3 -DKEPLER_OPTIMIZATIONS -gencode arch=compute_20,code=sm_20 -gencode arch=compute_35,code=sm_35 -lineinfo -DMAFIA_USE_DEVICE -Xptxas -v src/*.cpp src/*.cu -o bin/cppmafia

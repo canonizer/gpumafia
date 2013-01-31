@@ -11,6 +11,10 @@
 #include <stdio.h>
 #include <thrust/reduce.h>
 
+#define MAX_CDU_DIM 32
+#define CDUS_PER_BLOCK 8
+#define PCOUNT_NWORDS_PTHR 32
+
 using namespace thrust;
 
 template<class T> void MafiaSolver<T>::touch_dev() {
@@ -187,19 +191,26 @@ void MafiaSolver<T>::compute_bitmap_dev(int iwin) {
 __global__ void point_count_kernel
 (int* __restrict__ const pcounts, const int* __restrict__ const iwins, const int ncdus, const int ncoords, const unsigned* __restrict__ const bmps, const int nwords,
  const int nwords_pthr) {
-	int icdu = threadIdx.y + blockIdx.y * blockDim.y;
-	if(icdu >= ncdus)
-		return;
+       	__shared__ int liwins[CDUS_PER_BLOCK][MAX_CDU_DIM];
+	int licdu = threadIdx.y;
+	int icdu = licdu + blockIdx.y * blockDim.y;
 	int bs = blockDim.x;
 	int istart = threadIdx.x + blockIdx.x * bs * nwords_pthr;
 	int iend = min(istart + nwords_pthr * bs, nwords);
+	// load window bmp starts to local memory
+	int licoord = threadIdx.x;
+	if(icdu < ncdus && licoord < ncoords) {
+		liwins[licdu][licoord] = 
+			iwins[icdu * ncoords + licoord] * nwords;
+	}
+	__syncthreads();
+	if(icdu >= ncdus)
+		return;
 	int pcount = 0;
 	for(int iword = istart; iword < iend; iword += bs) {
 		unsigned word = ~0u;
-		for(int icoord = 0; icoord < ncoords; icoord++) {
-			int iwin = iwins[icdu * ncoords + icoord];
-			word &= bmps[iwin * nwords + iword];
-		}
+		for(int icoord = 0; icoord < ncoords; icoord++)
+			word &= bmps[liwins[licdu][icoord] + iword];
 		pcount += __popc(word);
 	}
 	atomicAdd(pcounts + icdu, pcount);
@@ -241,8 +252,9 @@ void MafiaSolver<T>::count_points_dev() {
 	}
 	CHECK(cudaMemset(d_pcounts, 0, pcount_sz));
 	//This value can be lowered to lanuch more threads (less work per thread)
-	int nwords_pthr = min(max(nwords / 64, 2), 64); // number of words per thread
-	dim3 bs(64, 8);  // block size
+	int nwords_pthr = min(max(nwords / PCOUNT_NWORDS_PTHR, 2), 
+	  PCOUNT_NWORDS_PTHR); // number of words per thread
+	dim3 bs(64, CDUS_PER_BLOCK);  // block size
 	// iterate over CDU parts
 	int ncdus_ppart = 32768 * bs.y;
 	int ncdu_parts = divup(ncdus, ncdus_ppart);
