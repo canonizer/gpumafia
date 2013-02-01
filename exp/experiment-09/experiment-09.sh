@@ -25,6 +25,7 @@ fi
 
 # generate profile data; also alternate between bitmap and direct
 for s in {seq,par6,par24,fermi}; do
+#for s in kepler; do
 		sopt=""
 		nt=1
 		if [ $s == seq ]; then

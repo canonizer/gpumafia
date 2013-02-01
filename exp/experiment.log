@@ -299,3 +299,16 @@ between Fermi and Kepler does not differ much, despite Kepler's supposedly
 faster atomics, though Kepler is marginally faster. Perhaps, there are more
 optimizations to be made for Kepler.
 
+01.02.2013
+
+1) Yesterday implemented an improvement in point counting. Previously, the
+window number had to be accessed for each word. And though we believe it to be
+cached, this still led to an indirect access and unnecessary computations. Now
+window numbers are precomputed and stored in local shared memory. This required
+us to limit maximum CDU dimensionality to 32, but we beleive that it won't be
+exceeded in any foreseeable practical applications. We estimate that this
+optimization gave a 25% time reduction of point counting kernel. Now
+conducting a more thorough experiment for Kepler.
+
+2) Performed experiments with Kepler with the improved kernel. Time reduction is
+around 28%, but performance improvement is more like 43%.
