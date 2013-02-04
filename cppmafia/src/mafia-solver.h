@@ -185,6 +185,8 @@ class MafiaSolver {
 	unsigned *bmps;
 	/** the device bitmap data, stored in window-major order */
 	unsigned *d_bmps;
+	/** the pitch for bitmaps on device */
+	size_t bmp_pitch;
 	/** the number words used to store a single bitmap */
 	int nwords;
 	/** window numbers, on device */

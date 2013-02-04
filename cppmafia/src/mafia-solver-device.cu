@@ -12,9 +12,10 @@
 #include <thrust/reduce.h>
 
 #define MAX_CDU_DIM 32
-#define CDUS_PER_BLOCK 8
+#define CDUS_PER_BLOCK 32
 #define MAX_GRID_BLOCKS_Y 32768
-#define PCOUNT_NWORDS_PTHREAD 32
+#define PCOUNT_NWORDS_PTHREAD 128
+#define PCOUNT_BLOCK_THREADS_X 16
 
 using namespace thrust;
 
@@ -131,8 +132,13 @@ template<class T> void MafiaSolver<T>::compute_histo_dev(int idim) {
 template<class T>
 void MafiaSolver<T>::alloc_bitmaps_dev() {
 	int nwindows = dense_ws.size();
-	CHECK(cudaMalloc((void**)&d_bmps, sizeof(*d_bmps) * nwindows * nwords));
-	CHECK(cudaMemset(d_bmps, 0, sizeof(*d_bmps) * nwindows * nwords));
+	//CHECK(cudaMalloc((void**)&d_bmps, sizeof(*d_bmps) * nwindows * nwords));
+	//CHECK(cudaMemset(d_bmps, 0, sizeof(*d_bmps) * nwindows * nwords));
+	CHECK(cudaMallocPitch((void**)&d_bmps, &bmp_pitch, 
+												nwords * sizeof(*d_bmps), nwindows));
+	CHECK(cudaMemset2D(d_bmps, bmp_pitch, 0, nwords * sizeof(*d_bmps), nwindows));
+	// now pitch is converted from bytes to elements
+	bmp_pitch /= sizeof(unsigned);
 }  // alloc_bitmaps_dev
 
 /** kernel to compute the bitmaps on device
@@ -144,7 +150,8 @@ void MafiaSolver<T>::alloc_bitmaps_dev() {
 	@param pright the right boundary of the window's range (non-inclusive)
  */
 template<class T> __global__ void bitmap_kernel
-(unsigned * __restrict__ const bmp, const int nwords, const T* __restrict__ const ps, const int n, const T pleft, const T pright) {
+(unsigned * __restrict__ const bmp, const int nwords, 
+const T* __restrict__ const ps, const int n, const T pleft, const T pright) {
 	//int iword = threadIdx.x + blockIdx.x * blockDim.x;
 	// TODO: use local memory
 	const int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -174,7 +181,8 @@ void MafiaSolver<T>::compute_bitmap_dev(int iwin) {
 	Window &w = dense_ws[iwin];
 	int idim = w.idim;
 	// allocate memory on device
-	unsigned *h_bmp = bmps + iwin * nwords, *d_bmp = d_bmps + iwin * nwords;
+	//unsigned *h_bmp = bmps + iwin * nwords, *d_bmp = d_bmps + iwin * nwords;
+	unsigned *h_bmp = bmps + iwin * nwords, *d_bmp = d_bmps + iwin * bmp_pitch;
 	// call the kernel
 	size_t bs = 256;
 	//bitmap_kernel<<<divup(nwords, bs), bs>>>
@@ -189,8 +197,9 @@ void MafiaSolver<T>::compute_bitmap_dev(int iwin) {
 }  // compute_bitmap_dev
 
 __global__ void point_count_kernel
-(int* __restrict__ const pcounts, const int* __restrict__ const iwins, const int ncdus, const int ncoords, const unsigned* __restrict__ const bmps, const int nwords,
- const int nwords_pthr) {
+(int* __restrict__ const pcounts, const int* __restrict__ const iwins, const int
+ncdus, const int ncoords, const unsigned* __restrict__ const bmps, const int
+ nwords, const size_t bmp_pitch, const int nwords_pthr) {
        	__shared__ int liwins[CDUS_PER_BLOCK][MAX_CDU_DIM];
 	int licdu = threadIdx.y;
 	int icdu = licdu + blockIdx.y * blockDim.y;
@@ -198,10 +207,10 @@ __global__ void point_count_kernel
 	int istart = threadIdx.x + blockIdx.x * bs * nwords_pthr;
 	int iend = min(istart + nwords_pthr * bs, nwords);
 	// load window bmp starts to local memory
-	int licoord = threadIdx.x;
-	if(icdu < ncdus && licoord < ncoords) {
-		liwins[licdu][licoord] = 
-			iwins[icdu * ncoords + licoord] * nwords;
+	//int licoord = threadIdx.x;
+	if(icdu < ncdus) {
+		for(int licoord = threadIdx.x; licoord < ncoords; licoord += blockDim.x)
+			liwins[licdu][licoord] = 	iwins[icdu * ncoords + licoord] * bmp_pitch;
 	}
 	__syncthreads();
 	if(icdu >= ncdus)
@@ -254,7 +263,7 @@ void MafiaSolver<T>::count_points_dev() {
 	//This value can be lowered to lanuch more threads (less work per thread)
 	int nwords_pthr = min(max(nwords / PCOUNT_NWORDS_PTHREAD, 2), 
 	  PCOUNT_NWORDS_PTHREAD); // number of words per thread
-	dim3 bs(64, CDUS_PER_BLOCK);  // block size
+	dim3 bs(PCOUNT_BLOCK_THREADS_X, CDUS_PER_BLOCK);  // block size
 	// iterate over CDU parts
 	int ncdus_ppart = MAX_GRID_BLOCKS_Y * bs.y;
 	int ncdu_parts = divup(ncdus, ncdus_ppart);
@@ -263,8 +272,8 @@ void MafiaSolver<T>::count_points_dev() {
 		dim3 grid(divup(nwords, nwords_pthr * bs.x), divup(cur_ncdus, bs.y));
 		// TODO: support more than 2**18-4 CDUs
 		point_count_kernel<<<grid, bs>>>
-			(d_pcounts + icdu_part * ncdus_ppart, d_iwins + icdu_part * ncdus_ppart, cur_ncdus, ncoords,
-			 d_bmps, nwords, nwords_pthr);
+			(d_pcounts + icdu_part * ncdus_ppart, d_iwins + icdu_part * ncdus_ppart, 
+			 cur_ncdus, ncoords, d_bmps, nwords, bmp_pitch, nwords_pthr);
 	}
 	//TODO: replace with cudaGetLastError: Why does it crash in this case?
 	CHECK(cudaDeviceSynchronize());

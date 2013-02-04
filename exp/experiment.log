@@ -312,3 +312,24 @@ conducting a more thorough experiment for Kepler.
 
 2) Performed experiments with Kepler with the improved kernel. Time reduction is
 around 28%, but performance improvement is more like 43%.
+
+04.02.2013
+
+1) Implemented a further improvement in point counting, by allocating memory as
+a pitched CUDA array. Also, tried a different block size and number of elements
+processed inside each thread. This gave another 28% improvement. Compared to
+initial version, the cumulative improvement is 82% (1.82x). For k=14, the
+bandwidth estimated from the operation count estimate is 165 GB/s (decimal GB!),
+which indicates that the algorithm is most likely memory bound. Nevertheless, it
+is possible that some of the bandwidth goes to cache. To check which fraction of
+the bandwidth goes to cache, I need to run the kernel through NVVP.
+
+2) I've run the kernel with NVPP, but I was unable to measure cache hit rate,
+due to some NVPP error. So, for now just assume that the kernel is memory
+bound. However, I also assume that there is some data reuse, because window
+numbers repeat across multiple CDUs. So now I will try using local shared memory
+to avoid repeated memory reads. I will precompute the bit array numbers which
+need to be loaded for each block, load them to local shared memory, and then
+will read them for multiple CDUs. If the number of bitmaps to load is higher
+than some arbitrary predefined threshold, I'll just switch to the plain old
+kernel.
