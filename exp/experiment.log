@@ -333,3 +333,13 @@ need to be loaded for each block, load them to local shared memory, and then
 will read them for multiple CDUs. If the number of bitmaps to load is higher
 than some arbitrary predefined threshold, I'll just switch to the plain old
 kernel.
+
+05.02.2013
+
+1) Tried point counting in local shared memory. Seen no noticeable improvement,
+and performance actually became worse. Possibly, there was some caching going on
+in the initial version of the code. As there is no improvement, leaving the
+changes in a separate branch (localpcount), and not merging them into the main
+branches (master/develop). If there is any possible future insight in the
+problem, the code from that branch can be reused.
+
