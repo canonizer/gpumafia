@@ -1,6 +1,6 @@
 INTRO
 
-cppmafia implements MAFIA clustering algorithm, mostly as described in the paper
+gpumafia implements MAFIA clustering algorithm, mostly as described in the paper
 "Parallel Algorithms for Clustering High-Dimensional Large-Scale Datasets" by
 H. Nagesh, S. Goil and A. Choudhary. Refer to this paper for the detailed
 description of the algorithm as well as the parameters involved. This
@@ -8,13 +8,19 @@ implementation can run both on CPUs (single-core only) as well as GPUs (only a
 single GPU). The implementation mostly follows the paper, while introducing some
 additional algorithmic optimizations.
 
+This code has been developed at Juelich Supercomputing Center, Forschungszentrum
+Juelich, and is a property of Forschungszentrum Juelich. Users can modify and/or
+distribute code free of charge, provided that this notice is retained.
+
 The implementation expects a single file with data points, and writes output
 files, one or two per cluster, in the same directory where the input file is
 located. Indices of points belonging to the cluster, and optionally, the points
 themselves, are the output of the program.
 
-
 COMPILING
+
+The main project directory is cppmafia; all further commands are given with
+respect to that directory.
 
 ./makefile is the makefile for the project, and make definitions are in
 makefile.def. There are currently two definitions: the C++ compiler used (CXX),
@@ -83,7 +89,7 @@ INPUT DATA
 If you want to use MAFIA for something serious, you probably have them
 already. However, if you want just to play with the utility, profile it or test
 it for correctness and/or performance, there is a data generator provided. See
-../utils/clugen for the data generator. You can compile it by doing make (in
+utils/clugen for the data generator. You can compile it by doing make (in
 that directory), and then generate different datasets with it. E.g.,
 
 bin/clugen -n100000 -d10 -k8 -m2 ~/try/mafia/cluster-8.dat
