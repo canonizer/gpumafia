@@ -10,6 +10,7 @@
 #include <limits>
 #include <stdio.h>
 #include <thrust/reduce.h>
+#include <thrust/device_ptr.h>
 
 #define MAX_CDU_DIM 32
 #define CDUS_PER_BLOCK 32
